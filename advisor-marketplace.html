@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Advisor Marketplace — CipherGrid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080C18; --surface: #0D1321; --card: #111827;
+    --border: #1A2540; --border-bright: #243050;
+    --accent: #2563EB; --accent-glow: #3B82F6; --purple: #7C3AED;
+    --gold: #F59E0B; --success: #10B981; --warning: #F97316; --danger: #EF4444;
+    --text-primary: #F1F5F9; --text-secondary: #94A3B8; --text-muted: #4B5563;
+    --mono: 'JetBrains Mono', monospace; --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text-primary); font-family: var(--sans); line-height: 1.6; min-height: 100vh; }
+
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 60px; background: rgba(8,12,24,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg,var(--accent),var(--purple)); border-radius: 8px; display:flex;align-items:center;justify-content:center;font-size:14px; }
+  .nav-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); }
+  .nav-back { color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+  .nav-back:hover { color: var(--accent-glow); }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 100px 24px 80px; }
+
+  /* HERO */
+  .hero { text-align: center; margin-bottom: 40px; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 20px; padding: 6px 16px; font-size: 11px; font-weight: 600; color: var(--success); letter-spacing: 0.1em; margin-bottom: 20px; font-family: var(--mono); }
+  .hero-badge::before { content:''; width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success); }
+  h1 { font-size: clamp(28px,5vw,46px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; }
+  h1 .grad { background: linear-gradient(135deg,var(--success),var(--accent-glow)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-sub { font-size: 15px; color: var(--text-secondary); line-height: 1.7; max-width: 560px; margin: 0 auto; }
+
+  /* STATS */
+  .stats-strip { display: flex; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: 32px 0; }
+  .stat-item { flex: 1; background: var(--card); padding: 18px; text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--accent-glow); }
+  .stat-lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; margin-top: 3px; text-transform: uppercase; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; align-items: center; }
+  .filter-label { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.06em; margin-right: 4px; }
+  .filter-chip { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-family: var(--sans); }
+  .filter-chip:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .filter-chip.active { background: rgba(37,99,235,0.12); border-color: var(--accent-glow); color: var(--accent-glow); font-weight: 600; }
+  .search-box { margin-left: auto; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 6px 16px; font-size: 12px; color: var(--text-primary); font-family: var(--sans); outline: none; width: 200px; transition: border-color 0.2s; }
+  .search-box:focus { border-color: var(--accent-glow); }
+  .search-box::placeholder { color: var(--text-muted); }
+
+  /* ADVISOR GRID */
+  .advisor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 20px; }
+  .advisor-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; transition: all 0.25s; position: relative; overflow: hidden; }
+  .advisor-card::before { content:''; position:absolute;top:0;left:0;right:0;height:2px; background: linear-gradient(90deg, var(--accent), var(--purple)); opacity:0; transition: opacity 0.25s; }
+  .advisor-card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+  .advisor-card:hover::before { opacity: 1; }
+
+  /* CARD HEADER */
+  .card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--border); display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:var(--surface); }
+  .advisor-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .advisor-title { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+  .availability { position: absolute; top: 16px; right: 16px; display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; }
+  .avail-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .avail-open .avail-dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .avail-open { color: var(--success); }
+  .avail-limited .avail-dot { background: var(--gold); }
+  .avail-limited { color: var(--gold); }
+  .avail-closed .avail-dot { background: var(--text-muted); }
+  .avail-closed { color: var(--text-muted); }
+
+  /* TAGS */
+  .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tag { font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.04em; }
+  .tag-darpa { background: rgba(239,68,68,0.12); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); }
+  .tag-sbir { background: rgba(37,99,235,0.12); color: var(--accent-glow); border: 1px solid rgba(37,99,235,0.25); }
+  .tag-ip { background: rgba(124,58,237,0.12); color: #A78BFA; border: 1px solid rgba(124,58,237,0.25); }
+  .tag-em { background: rgba(16,185,129,0.12); color: var(--success); border: 1px solid rgba(16,185,129,0.25); }
+  .tag-bd { background: rgba(245,158,11,0.12); color: var(--gold); border: 1px solid rgba(245,158,11,0.25); }
+  .tag-cofounder { background: rgba(249,115,22,0.12); color: var(--warning); border: 1px solid rgba(249,115,22,0.25); }
+
+  /* BIO */
+  .advisor-bio { font-size: 12px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 14px; }
+
+  /* METRICS ROW */
+  .metrics-row { display: flex; gap: 16px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .metric-item { text-align: center; }
+  .metric-val { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .metric-lbl { font-size: 9px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 1px; }
+
+  /* CARD FOOTER */
+  .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .rate { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .rate span { font-size: 10px; color: var(--text-muted); font-weight: 400; }
+  .connect-btn { background: linear-gradient(135deg,var(--accent),var(--purple)); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: all 0.2s; letter-spacing: 0.03em; }
+  .connect-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
+  .connect-btn.locked { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); box-shadow: none; }
+  .connect-btn.locked:hover { transform: none; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.visible { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border-bright); border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; }
+  .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+  .modal-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text-primary); font-size: 13px; font-family: var(--sans); outline: none; margin-bottom: 12px; transition: border-color 0.2s; }
+  .modal-input:focus { border-color: var(--accent-glow); }
+  .modal-textarea { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text-primary); font-size: 13px; font-family: var(--sans); outline: none; min-height: 100px; resize: vertical; line-height: 1.6; margin-bottom: 12px; }
+  .modal-submit { width: 100%; padding: 13px; border-radius: 10px; background: linear-gradient(135deg,var(--accent),var(--purple)); border: none; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
+  .modal-submit:hover { transform: translateY(-1px); }
+  .modal-success { display: none; text-align: center; padding: 20px 0; }
+  .modal-success.visible { display: block; }
+  .modal-success-icon { font-size: 40px; margin-bottom: 12px; }
+  .modal-success h4 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .modal-success p { font-size: 13px; color: var(--text-secondary); }
+
+  /* BECOME AN ADVISOR */
+  .become-banner { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25); border-radius: 14px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 40px; flex-wrap: wrap; }
+  .become-text h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .become-text p { font-size: 13px; color: var(--text-secondary); max-width: 480px; line-height: 1.6; }
+  .become-btn { background: none; border: 1px solid var(--success); color: var(--success); padding: 12px 24px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); transition: all 0.2s; white-space: nowrap; }
+  .become-btn:hover { background: rgba(16,185,129,0.1); }
+
+  /* PAYWALL */
+  .paywall-banner { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.3); border-radius: 12px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .paywall-text { font-size: 13px; color: var(--text-secondary); }
+  .paywall-text strong { color: var(--text-primary); }
+  .paywall-btn { background: linear-gradient(135deg,var(--purple),var(--accent)); color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); white-space: nowrap; }
+
+  .no-results { text-align: center; padding: 60px 24px; color: var(--text-muted); font-size: 14px; display: none; }
+  .no-results.visible { display: block; }
+
+  .bottom-note { text-align: center; margin-top: 40px; font-size: 11px; color: var(--text-muted); line-height: 1.9; }
+  .bottom-note a { color: var(--accent-glow); text-decoration: none; }
+
+  @media(max-width:768px) {
+    nav { padding: 0 16px; }
+    .main { padding: 90px 16px 60px; }
+    .stats-strip { flex-direction: row; }
+    .advisor-grid { grid-template-columns: 1fr; }
+    .search-box { width: 100%; margin-left: 0; }
+    .become-banner { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">⚡</div>
+    <span class="nav-logo-text">CipherGrid</span>
+  </a>
+  <a class="nav-back" href="index.html">← Back to Platform</a>
+</nav>
+
+<div class="main">
+
+  <div class="hero">
+    <div class="hero-badge">ENTERPRISE FEATURE · ADVISOR NETWORK</div>
+    <h1>Co-Founder &<br/><span class="grad">Advisor Marketplace</span></h1>
+    <p class="hero-sub">Connect with ex-DARPA program managers, defense IP attorneys, deep-tech co-founders, and SBIR specialists who've been where you're going.</p>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-item"><div class="stat-val">34</div><div class="stat-lbl">Verified Advisors</div></div>
+    <div class="stat-item"><div class="stat-val">$2.1B+</div><div class="stat-lbl">Contracts Facilitated</div></div>
+    <div class="stat-item"><div class="stat-val">127</div><div class="stat-lbl">SBIR Awards Supported</div></div>
+    <div class="stat-item"><div class="stat-val">48h</div><div class="stat-lbl">Avg Response Time</div></div>
+  </div>
+
+  <div class="paywall-banner">
+    <div class="paywall-text"><strong>Enterprise feature.</strong> Viewing advisor profiles is free. Requesting a connection requires an Enterprise plan. <a href="index.html#pricing" style="color:var(--accent-glow);text-decoration:none">See pricing →</a></div>
+    <button class="paywall-btn" onclick="window.location.href='index.html#pricing'">Upgrade to Enterprise</button>
+  </div>
+
+  <div class="filters">
+    <span class="filter-label">FILTER:</span>
+    <button class="filter-chip active" onclick="filterAdvisors('all', this)">All</button>
+    <button class="filter-chip" onclick="filterAdvisors('darpa', this)">Ex-DARPA</button>
+    <button class="filter-chip" onclick="filterAdvisors('sbir', this)">SBIR Specialist</button>
+    <button class="filter-chip" onclick="filterAdvisors('ip', this)">IP / Patent</button>
+    <button class="filter-chip" onclick="filterAdvisors('cofounder', this)">Co-Founder</button>
+    <button class="filter-chip" onclick="filterAdvisors('em', this)">EM / Power</button>
+    <input class="search-box" id="search-box" placeholder="Search advisors..." oninput="searchAdvisors(this.value)"/>
+  </div>
+
+  <div class="advisor-grid" id="advisor-grid"></div>
+  <div class="no-results" id="no-results">No advisors match your filter. Try a different category.</div>
+
+  <div class="become-banner">
+    <div class="become-text">
+      <h3>Are you a defense tech expert?</h3>
+      <p>Ex-DARPA PMs, defense IP attorneys, SBIR specialists, and deep-tech co-founders — join CipherGrid's advisor network and connect with the next generation of defense inventors.</p>
+    </div>
+    <button class="become-btn" onclick="openBecomeModal()">Apply to Become an Advisor</button>
+  </div>
+
+  <div class="bottom-note">
+    Verified advisors · Enterprise tier feature · <a href="index.html#pricing">View pricing</a><br/>
+    <a href="index.html">← Back to CipherGrid Platform</a>
+  </div>
+</div>
+
+<!-- CONNECT MODAL -->
+<div class="modal-overlay" id="connect-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeConnectModal()">✕</button>
+    <div id="modal-form-content">
+      <h3 id="modal-title">Request Connection</h3>
+      <p class="modal-sub" id="modal-sub">Send a brief intro and your tech overview — the advisor will respond within 48 hours.</p>
+      <input class="modal-input" id="modal-name" placeholder="Your name"/>
+      <input class="modal-input" id="modal-tech" placeholder="Your technology / project name"/>
+      <textarea class="modal-textarea" id="modal-message" placeholder="Briefly describe what you're working on and what kind of help you need..."></textarea>
+      <button class="modal-submit" onclick="submitRequest()">Send Connection Request</button>
+    </div>
+    <div class="modal-success" id="modal-success">
+      <div class="modal-success-icon">✅</div>
+      <h4>Request Sent</h4>
+      <p>Your connection request has been submitted. The advisor will be in touch within 48 hours via email.</p>
+    </div>
+  </div>
+</div>
+
+<!-- BECOME ADVISOR MODAL -->
+<div class="modal-overlay" id="become-modal" onclick="closeBecomeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeBecomeModalBtn()">✕</button>
+    <div id="become-form-content">
+      <h3>Apply as an Advisor</h3>
+      <p class="modal-sub">We review all applications. Accepted advisors get a verified profile and access to the CipherGrid inventor network.</p>
+      <input class="modal-input" id="become-name" placeholder="Your full name"/>
+      <input class="modal-input" id="become-role" placeholder="Current or most recent role (e.g. DARPA Program Manager)"/>
+      <input class="modal-input" id="become-specialty" placeholder="Primary specialty (e.g. SBIR, IP Law, EM Systems)"/>
+      <textarea class="modal-textarea" id="become-bio" placeholder="Brief bio — your background, expertise, and how you can help inventors..."></textarea>
+      <button class="modal-submit" onclick="submitBecome()">Submit Application</button>
+    </div>
+    <div class="modal-success" id="become-success">
+      <div class="modal-success-icon">🎯</div>
+      <h4>Application Received</h4>
+      <p>We'll review your application and reach out within 5 business days.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADVISORS = [
+  {
+    id: 1, name: "Dr. Marcus Webb", emoji: "🎖️",
+    title: "Former DARPA Program Manager · MTO Division",
+    availability: "limited", availLabel: "LIMITED SLOTS",
+    tags: ["darpa","sbir"], tagLabels: [["DARPA PM","tag-darpa"],["SBIR","tag-sbir"]],
+    bio: "15 years as a DARPA program manager overseeing $380M in advanced technology programs across microsystems, EM propulsion, and novel materials. Now advising deep-tech founders on navigating the DoD acquisition process.",
+    awards: "47", contracts: "$380M", years: "15 yrs",
+    rate: "$450", rateUnit: "/hr", enterprise: true
+  },
+  {
+    id: 2, name: "Sarah Chen, Esq.", emoji: "⚖️",
+    title: "Defense IP Attorney · Patent Strategy",
+    availability: "open", availLabel: "AVAILABLE",
+    tags: ["ip","sbir"], tagLabels: [["IP / Patent","tag-ip"],["SBIR","tag-sbir"]],
+    bio: "Specialized in defense technology IP strategy, dual-use patent filings, and SBIR IP retention clauses. Filed 200+ patents across EM, propulsion, and advanced materials. Former counsel at AFRL.",
+    awards: "200+", contracts: "$0 lost IP", years: "12 yrs",
+    rate: "$350", rateUnit: "/hr", enterprise: false
+  },
+  {
+    id: 3, name: "Lt. Col. (Ret.) James Okafor", emoji: "🛡️",
+    title: "Business Development · DoD Procurement",
+    availability: "open", availLabel: "AVAILABLE",
+    tags: ["darpa","bd"], tagLabels: [["Ex-DARPA","tag-darpa"],["Biz Dev","tag-bd"]],
+    bio: "Retired Air Force Lieutenant Colonel with deep procurement and BD experience across AFWERX, AFRL, and OSD. Specializes in helping early-stage companies navigate the transition from SBIR Phase II to full program of record.",
+    awards: "31", contracts: "$120M", years: "20 yrs",
+    rate: "$300", rateUnit: "/hr", enterprise: false
+  },
+  {
+    id: 4, name: "Dr. Priya Nair", emoji: "⚡",
+    title: "EM Systems Engineer · Technical Co-Founder",
+    availability: "open", availLabel: "AVAILABLE",
+    tags: ["em","cofounder"], tagLabels: [["EM / Power","tag-em"],["Co-Founder","tag-cofounder"]],
+    bio: "PhD in Electrical Engineering from MIT, specializing in electromagnetic flux systems and advanced coil architectures. Co-founded two defense-tech startups — one acquired by L3Harris. Open to co-founder and technical advisory roles.",
+    awards: "8 patents", contracts: "2 exits", years: "14 yrs",
+    rate: "$275", rateUnit: "/hr", enterprise: false
+  },
+  {
+    id: 5, name: "Robert Tanner", emoji: "🚀",
+    title: "SBIR Proposal Specialist · 94% Win Rate",
+    availability: "limited", availLabel: "LIMITED SLOTS",
+    tags: ["sbir"], tagLabels: [["SBIR","tag-sbir"]],
+    bio: "Former DoD evaluator turned SBIR proposal consultant. Reviewed 600+ proposals from the government side, now helps inventors write winning submissions. Specializes in DARPA, AFWERX, and ONR solicitations.",
+    awards: "94%", contracts: "win rate", years: "10 yrs",
+    rate: "$225", rateUnit: "/hr", enterprise: false
+  },
+  {
+    id: 6, name: "Dr. Angela Torres", emoji: "🔬",
+    title: "University Tech Transfer · Defense Licensing",
+    availability: "closed", availLabel: "WAITLIST",
+    tags: ["ip","sbir"], tagLabels: [["IP / Patent","tag-ip"],["SBIR","tag-sbir"]],
+    bio: "Director of technology transfer at a top-10 engineering university for 8 years. Expert in dual-use licensing, university-industry partnerships, and navigating ITAR / export control for early-stage companies.",
+    awards: "60+", contracts: "licenses executed", years: "18 yrs",
+    rate: "$400", rateUnit: "/hr", enterprise: true
+  },
+  {
+    id: 7, name: "Kevin Marsh", emoji: "🏗️",
+    title: "Deep-Tech Co-Founder · Propulsion Systems",
+    availability: "open", availLabel: "AVAILABLE",
+    tags: ["cofounder","em"], tagLabels: [["Co-Founder","tag-cofounder"],["EM / Power","tag-em"]],
+    bio: "Serial deep-tech co-founder with experience in propulsion, power systems, and autonomous platforms. Built two Phase II SBIR companies from makerspace prototypes. Looking to co-found with serious technical inventors.",
+    awards: "3 startups", contracts: "$14M raised", years: "11 yrs",
+    rate: "Equity", rateUnit: " basis", enterprise: false
+  },
+  {
+    id: 8, name: "Col. (Ret.) Diana Park", emoji: "🎯",
+    title: "Former DARPA PM · Autonomous Systems",
+    availability: "limited", availLabel: "LIMITED SLOTS",
+    tags: ["darpa","sbir","bd"], tagLabels: [["DARPA PM","tag-darpa"],["SBIR","tag-sbir"],["Biz Dev","tag-bd"]],
+    bio: "20-year career spanning DARPA DSO, Army Research Lab, and SOCOM. Managed programs in autonomous systems, directed energy, and resilient communications. Advises on program alignment, agency relationships, and transition strategy.",
+    awards: "62", contracts: "$520M", years: "20 yrs",
+    rate: "$500", rateUnit: "/hr", enterprise: true
+  },
+];
+
+let activeFilter = 'all';
+let searchQuery = '';
+
+function renderGrid() {
+  const grid = document.getElementById('advisor-grid');
+  const noResults = document.getElementById('no-results');
+  const filtered = ADVISORS.filter(a => {
+    const matchFilter = activeFilter === 'all' || a.tags.includes(activeFilter);
+    const matchSearch = !searchQuery || a.name.toLowerCase().includes(searchQuery) || a.title.toLowerCase().includes(searchQuery) || a.bio.toLowerCase().includes(searchQuery);
+    return matchFilter && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    noResults.classList.add('visible');
+    return;
+  }
+  noResults.classList.remove('visible');
+
+  grid.innerHTML = filtered.map(a => {
+    const availClass = a.availability === 'open' ? 'avail-open' : a.availability === 'limited' ? 'avail-limited' : 'avail-closed';
+    const btnText = a.enterprise ? '🔒 Enterprise Only' : 'Request Connection';
+    const btnClass = a.enterprise ? 'connect-btn locked' : 'connect-btn';
+    const btnAction = a.enterprise ? `onclick="window.location.href='index.html#pricing'"` : `onclick="openConnectModal('${a.name}', '${a.title}')"`;
+    return `
+      <div class="advisor-card">
+        <div class="availability ${availClass}">
+          <div class="avail-dot"></div>${a.availLabel}
+        </div>
+        <div class="card-header">
+          <div class="avatar">${a.emoji}</div>
+          <div>
+            <div class="advisor-name">${a.name}</div>
+            <div class="advisor-title">${a.title}</div>
+          </div>
+        </div>
+        <div class="tag-row">
+          ${a.tagLabels.map(([label,cls])=>`<span class="tag ${cls}">${label}</span>`).join('')}
+        </div>
+        <div class="advisor-bio">${a.bio}</div>
+        <div class="metrics-row">
+          <div class="metric-item"><div class="metric-val">${a.awards}</div><div class="metric-lbl">Awards</div></div>
+          <div class="metric-item"><div class="metric-val">${a.contracts}</div><div class="metric-lbl">Facilitated</div></div>
+          <div class="metric-item"><div class="metric-val">${a.years}</div><div class="metric-lbl">Experience</div></div>
+        </div>
+        <div class="card-footer">
+          <div class="rate">${a.rate}<span>${a.rateUnit}</span></div>
+          <button class="${btnClass}" ${btnAction}>${btnText}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterAdvisors(filter, el) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderGrid();
+}
+
+function searchAdvisors(val) {
+  searchQuery = val.toLowerCase().trim();
+  renderGrid();
+}
+
+let currentAdvisor = '';
+function openConnectModal(name, title) {
+  currentAdvisor = name;
+  document.getElementById('modal-title').textContent = `Connect with ${name}`;
+  document.getElementById('modal-sub').textContent = `Send a brief intro to ${name} — they'll respond within 48 hours.`;
+  document.getElementById('modal-form-content').style.display = 'block';
+  document.getElementById('modal-success').classList.remove('visible');
+  document.getElementById('connect-modal').classList.add('visible');
+}
+function closeConnectModal() { document.getElementById('connect-modal').classList.remove('visible'); }
+function closeModal(e) { if (e.target === document.getElementById('connect-modal')) closeConnectModal(); }
+function submitRequest() {
+  document.getElementById('modal-form-content').style.display = 'none';
+  document.getElementById('modal-success').classList.add('visible');
+  setTimeout(closeConnectModal, 3000);
+}
+
+function openBecomeModal() {
+  document.getElementById('become-form-content').style.display = 'block';
+  document.getElementById('become-success').classList.remove('visible');
+  document.getElementById('become-modal').classList.add('visible');
+}
+function closeBecomeModal(e) { if (e.target === document.getElementById('become-modal')) closeBecomeModalBtn(); }
+function closeBecomeModalBtn() { document.getElementById('become-modal').classList.remove('visible'); }
+function submitBecome() {
+  document.getElementById('become-form-content').style.display = 'none';
+  document.getElementById('become-success').classList.add('visible');
+  setTimeout(closeBecomeModalBtn, 3000);
+}
+
+renderGrid();
+</script>
+</body>
+</html>
