@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Competitive Intelligence Dashboard — CipherGrid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080C18;
+    --surface: #0D1321;
+    --card: #111827;
+    --border: #1A2540;
+    --border-bright: #243050;
+    --accent: #2563EB;
+    --accent-glow: #3B82F6;
+    --purple: #7C3AED;
+    --gold: #F59E0B;
+    --success: #10B981;
+    --warning: #F97316;
+    --danger: #EF4444;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #4B5563;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text-primary); font-family: var(--sans); line-height: 1.6; min-height: 100vh; }
+
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 60px;
+    background: rgba(8,12,24,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg,var(--accent),var(--purple)); border-radius: 8px; display:flex;align-items:center;justify-content:center;font-size:14px; }
+  .nav-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); }
+  .nav-back { color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+  .nav-back:hover { color: var(--accent-glow); }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 100px 24px 80px; }
+
+  .hero { text-align: center; margin-bottom: 40px; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 20px; padding: 6px 16px; font-size: 11px; font-weight: 600; color: var(--gold); letter-spacing: 0.1em; margin-bottom: 20px; font-family: var(--mono); }
+  .hero-badge::before { content:''; width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success); }
+  h1 { font-size: clamp(28px,5vw,46px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; text-align: center; }
+  h1 .grad { background: linear-gradient(135deg,var(--gold),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-sub { font-size: 15px; color: var(--text-secondary); line-height: 1.7; max-width: 560px; margin: 0 auto; text-align: center; }
+
+  .search-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin: 36px 0; }
+  .search-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .search-input { flex: 1; min-width: 240px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; color: var(--text-primary); font-size: 14px; font-family: var(--sans); outline: none; transition: border-color 0.2s; }
+  .search-input:focus { border-color: var(--accent-glow); }
+  .search-select { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; color: var(--text-primary); font-size: 13px; font-family: var(--sans); outline: none; cursor: pointer; }
+  .search-select option { background: var(--card); }
+  .search-btn { background: linear-gradient(135deg,var(--accent),#1D4ED8); color: #fff; border: none; padding: 13px 28px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); box-shadow: 0 0 20px rgba(37,99,235,0.4); transition: all 0.2s; white-space: nowrap; }
+  .search-btn:hover { transform: translateY(-2px); }
+  .search-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .search-hint { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+
+  .loading { display: none; margin-top: 18px; text-align: center; }
+  .loading.visible { display: block; }
+  .loading-text { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .loading-bar { height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .loading-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--purple)); animation: scan 1.5s ease-in-out infinite; width: 40%; }
+  @keyframes scan { 0%{transform:translateX(-150%)} 100%{transform:translateX(450%)} }
+
+  .error-box { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 14px; color: var(--danger); font-size: 13px; margin-top: 14px; display: none; }
+  .error-box.visible { display: block; }
+
+  .dashboard { display: none; }
+  .dashboard.visible { display: block; }
+  .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .dash-title { font-size: 18px; font-weight: 700; }
+  .dash-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .reset-btn { background: none; border: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
+  .reset-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
+  .stat-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 28px; font-weight: 700; }
+  .stat-lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; margin-top: 4px; text-transform: uppercase; }
+
+  .dash-section { margin-bottom: 32px; }
+  .dash-section-label { font-family: var(--mono); font-size: 11px; color: var(--accent-glow); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+  .competitor-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .competitor-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+  .competitor-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .competitor-type { font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; }
+  .threat-badge { font-size: 10px; font-weight: 700; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.06em; white-space: nowrap; }
+  .threat-high { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+  .threat-med { background: rgba(249,115,22,0.15); color: var(--warning); border: 1px solid rgba(249,115,22,0.3); }
+  .threat-low { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+  .competitor-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-top: 10px; }
+  .competitor-meta { display: flex; gap: 18px; margin-top: 12px; flex-wrap: wrap; }
+  .competitor-stat { font-size: 11px; }
+  .competitor-stat .val { color: var(--text-primary); font-weight: 600; font-family: var(--mono); }
+  .competitor-stat .lbl { color: var(--text-muted); }
+
+  .funding-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 14px; }
+  .funding-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .funding-lab { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .funding-target { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+  .funding-amount { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--gold); }
+  .funding-bar-track { height: 5px; background: var(--border); border-radius: 5px; overflow: hidden; margin-top: 8px; }
+  .funding-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--warning)); border-radius: 5px; }
+
+  .gap-card { background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.25); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .gap-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .gap-icon { font-size: 18px; }
+  .gap-title { font-size: 14px; font-weight: 700; color: var(--success); }
+  .gap-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.65; }
+
+  .filings-table { width: 100%; border-collapse: collapse; }
+  .filings-table th { text-align: left; font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .filings-table td { padding: 12px 14px; font-size: 12px; color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+  .filings-table tr:last-child td { border-bottom: none; }
+  .filing-title-cell { color: var(--text-primary); font-weight: 600; }
+  .filing-recency { font-family: var(--mono); font-size: 10px; padding: 2px 8px; border-radius: 12px; }
+  .recency-new { background: rgba(16,185,129,0.15); color: var(--success); }
+  .recency-recent { background: rgba(245,158,11,0.15); color: var(--gold); }
+  .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; overflow-x: auto; }
+
+  .disclaimer { margin-top: 24px; padding: 14px; background: var(--card); border-radius: 10px; border: 1px solid var(--border); font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+
+  .bottom-note { text-align: center; margin-top: 32px; font-size: 11px; color: var(--text-muted); line-height: 1.9; }
+  .bottom-note a { color: var(--accent-glow); text-decoration: none; }
+
+  .lock-banner { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.3); border-radius: 12px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+  .lock-text { font-size: 13px; color: var(--text-secondary); }
+  .lock-text strong { color: var(--text-primary); }
+  .lock-btn { background: linear-gradient(135deg,var(--purple),var(--accent)); color: #fff; border: none; padding: 10px 22px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); white-space: nowrap; }
+
+  @media(max-width:768px) {
+    .stats-row { grid-template-columns: repeat(2,1fr); }
+    nav { padding: 0 16px; }
+    .main { padding: 90px 16px 60px; }
+    .search-row { flex-direction: column; }
+    .competitor-top { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">⚡</div>
+    <span class="nav-logo-text">CipherGrid</span>
+  </a>
+  <a class="nav-back" href="index.html">← Back to Platform</a>
+</nav>
+
+<div class="main">
+
+  <div class="hero">
+    <div class="hero-badge">COMPETITIVE INTELLIGENCE · LIVE TRACKING</div>
+    <h1>Competitive Intel<br/><span class="grad">Dashboard</span></h1>
+    <p class="hero-sub">See who else is working on your technology, which labs are funding them, and the gaps in the market you can fill — strategic intelligence for investor decks and positioning.</p>
+  </div>
+
+  <div class="search-panel">
+    <div class="search-row">
+      <input class="search-input" id="tech-query" placeholder="Describe your technology, e.g. 'electromagnetic flux vector propulsion system'"/>
+      <select class="search-select" id="field-select">
+        <option value="">All fields</option>
+        <option>Electromagnetic / Power Systems</option>
+        <option>Propulsion / Aerospace</option>
+        <option>Software / AI</option>
+        <option>Biomedical / Health</option>
+        <option>Robotics / Automation</option>
+        <option>Defense / Security</option>
+        <option>Clean Energy</option>
+      </select>
+      <button class="search-btn" id="search-btn" onclick="runIntelSearch()">🔍 Run Intelligence Scan</button>
+    </div>
+    <div class="search-hint">Scans patent filings, lab funding records, and public research databases across universities, defense contractors, and corporations.</div>
+    <div class="loading" id="search-loading">
+      <div class="loading-text">Cross-referencing patent filings, lab funding, and market positioning...</div>
+      <div class="loading-bar"><div class="loading-fill"></div></div>
+    </div>
+    <div class="error-box" id="search-error"></div>
+  </div>
+
+  <div class="dashboard" id="dashboard">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title" id="dash-title">Competitive Landscape</div>
+        <div class="dash-sub" id="dash-sub"></div>
+      </div>
+      <button class="reset-btn" onclick="resetDashboard()">New Scan</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" id="stat-competitors" style="color:var(--danger)">—</div><div class="stat-lbl">Active Competitors</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-funded" style="color:var(--gold)">—</div><div class="stat-lbl">Funded Programs</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-gaps" style="color:var(--success)">—</div><div class="stat-lbl">Market Gaps Found</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-filings" style="color:var(--accent-glow)">—</div><div class="stat-lbl">Recent Filings</div></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">⚔ WHO ELSE IS WORKING ON THIS</div>
+      <div id="competitors-list"></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">💰 WHO'S FUNDING THE COMPETITION</div>
+      <div class="funding-grid" id="funding-list"></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">✓ GAPS IN THE MARKET YOU CAN FILL</div>
+      <div id="gaps-list"></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">📋 RECENT PATENT FILINGS IN YOUR SPACE</div>
+      <div class="table-wrap">
+        <table class="filings-table">
+          <thead><tr><th>Filing</th><th>Assignee</th><th>Type</th><th>Date</th></tr></thead>
+          <tbody id="filings-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="lock-banner">
+      <div class="lock-text"><strong>This scan is a one-time preview.</strong> Professional tier unlocks unlimited scans, lab funding alerts, and real-time filing notifications.</div>
+      <button class="lock-btn" onclick="window.location.href='index.html#pricing'">Upgrade to Pro</button>
+    </div>
+
+    <div class="disclaimer">
+      ⚠ This intelligence is AI-assisted and informational only. It does not constitute legal or financial advice. Data reflects publicly available patent and funding records and may not be fully current. CipherGrid recommends independent verification before making strategic decisions.
+    </div>
+  </div>
+
+  <div class="bottom-note">
+    AI-assisted competitive intelligence · Not legal or financial advice<br/>
+    <a href="index.html">← Back to CipherGrid Platform</a>
+  </div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are a competitive intelligence AI for CipherGrid, a defense-tech intelligence platform. Given a technology description, generate a realistic competitive landscape analysis covering: who else is working on similar tech, which labs/agencies are funding competitors, gaps in the market, and recent patent filings.
+
+Respond ONLY with valid JSON, no markdown, no preamble:
+{
+  "summary": "one sentence describing the competitive landscape",
+  "competitors": [
+    {
+      "name": "company/lab/university name",
+      "type": "Corporation | Defense Contractor | University / Research Lab | Government Agency | Startup",
+      "threat": "high | medium | low",
+      "description": "2 sentence description of what they're working on and why it's relevant",
+      "stage": "e.g. Phase II SBIR, Prototype, Production",
+      "funding": "approximate total funding if known, e.g. $12M"
+    }
+  ],
+  "funding": [
+    { "lab": "lab or agency name", "target": "what they are funding / program name", "amount": "$ amount", "percent": 0-100 }
+  ],
+  "gaps": [
+    { "title": "short gap title", "description": "1-2 sentence description of the market gap and why the user's tech could fill it" }
+  ],
+  "filings": [
+    { "title": "patent filing title", "assignee": "company/university name", "type": "short type label", "date": "Month Year", "recency": "new | recent" }
+  ]
+}
+
+Provide 3-5 competitors, 2-4 funding entries, 2-3 gaps, and 4-6 filings. Be specific and realistic for the given technology field. Vary threat levels honestly.`;
+
+async function callClaude(userText) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userText }]
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.map(b => b.text || '').join('') || '';
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
+async function runIntelSearch() {
+  const query = document.getElementById('tech-query').value.trim();
+  if (!query) { document.getElementById('tech-query').focus(); return; }
+  const field = document.getElementById('field-select').value;
+  const btn = document.getElementById('search-btn');
+  const loading = document.getElementById('search-loading');
+  const errBox = document.getElementById('search-error');
+
+  btn.disabled = true;
+  loading.classList.add('visible');
+  errBox.classList.remove('visible');
+  document.getElementById('dashboard').classList.remove('visible');
+
+  try {
+    const prompt = `Technology: ${query}\nField: ${field || 'Not specified'}\n\nGenerate a competitive intelligence report for this technology, identifying competitors, who's funding them, market gaps, and recent relevant patent filings.`;
+    const result = await callClaude(prompt);
+    renderDashboard(result, query);
+  } catch (e) {
+    errBox.textContent = 'Scan failed. Please try again or refine your description.';
+    errBox.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('visible');
+  }
+}
+
+function renderDashboard(data, query) {
+  const { summary, competitors = [], funding = [], gaps = [], filings = [] } = data;
+
+  document.getElementById('dash-title').textContent = 'Competitive Landscape: ' + query;
+  document.getElementById('dash-sub').textContent = summary || '';
+
+  document.getElementById('stat-competitors').textContent = competitors.length;
+  document.getElementById('stat-funded').textContent = funding.length;
+  document.getElementById('stat-gaps').textContent = gaps.length;
+  document.getElementById('stat-filings').textContent = filings.length;
+
+  document.getElementById('competitors-list').innerHTML = competitors.map(c => {
+    const threatClass = c.threat === 'high' ? 'threat-high' : c.threat === 'low' ? 'threat-low' : 'threat-med';
+    return `
+      <div class="competitor-card">
+        <div class="competitor-top">
+          <div>
+            <div class="competitor-name">${c.name||''}</div>
+            <div class="competitor-type">${(c.type||'').toUpperCase()}</div>
+          </div>
+          <span class="threat-badge ${threatClass}">${(c.threat||'medium').toUpperCase()} THREAT</span>
+        </div>
+        <div class="competitor-desc">${c.description||''}</div>
+        <div class="competitor-meta">
+          <div class="competitor-stat"><span class="val">${c.stage||'—'}</span> <span class="lbl">stage</span></div>
+          <div class="competitor-stat"><span class="val">${c.funding||'—'}</span> <span class="lbl">funding</span></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('funding-list').innerHTML = funding.map(f => `
+    <div class="funding-card">
+      <div class="funding-lab">${f.lab||''}</div>
+      <div class="funding-target">${f.target||''}</div>
+      <div class="funding-amount">${f.amount||''}</div>
+      <div class="funding-bar-track"><div class="funding-bar-fill" style="width:${f.percent||50}%"></div></div>
+    </div>`).join('');
+
+  document.getElementById('gaps-list').innerHTML = gaps.map(g => `
+    <div class="gap-card">
+      <div class="gap-header"><span class="gap-icon">🎯</span><span class="gap-title">${g.title||''}</span></div>
+      <div class="gap-desc">${g.description||''}</div>
+    </div>`).join('');
+
+  document.getElementById('filings-body').innerHTML = filings.map(f => `
+    <tr>
+      <td class="filing-title-cell">${f.title||''}</td>
+      <td>${f.assignee||''}</td>
+      <td>${f.type||''}</td>
+      <td>${f.date||''} ${f.recency ? `<span class="filing-recency recency-${f.recency}">${f.recency==='new'?'NEW':'RECENT'}</span>` : ''}</td>
+    </tr>`).join('');
+
+  document.getElementById('dashboard').classList.add('visible');
+  document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetDashboard() {
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('tech-query').value = '';
+  document.getElementById('field-select').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
