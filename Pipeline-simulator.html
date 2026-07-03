@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Contract Pipeline Simulator — CipherGrid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080C18; --surface: #0D1321; --card: #111827;
+    --border: #1A2540; --border-bright: #243050;
+    --accent: #2563EB; --accent-glow: #3B82F6; --purple: #7C3AED;
+    --gold: #F59E0B; --success: #10B981; --warning: #F97316; --danger: #EF4444;
+    --text-primary: #F1F5F9; --text-secondary: #94A3B8; --text-muted: #4B5563;
+    --mono: 'JetBrains Mono', monospace; --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text-primary); font-family: var(--sans); line-height: 1.6; min-height: 100vh; }
+
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 60px; background: rgba(8,12,24,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg,var(--accent),var(--purple)); border-radius: 8px; display:flex;align-items:center;justify-content:center;font-size:14px; }
+  .nav-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); }
+  .nav-back { color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+  .nav-back:hover { color: var(--accent-glow); }
+
+  .main { max-width: 880px; margin: 0 auto; padding: 100px 24px 80px; }
+
+  .hero { text-align: center; margin-bottom: 40px; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3); border-radius: 20px; padding: 6px 16px; font-size: 11px; font-weight: 600; color: #A78BFA; letter-spacing: 0.1em; margin-bottom: 20px; font-family: var(--mono); }
+  .hero-badge::before { content:''; width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success); }
+  h1 { font-size: clamp(28px,5vw,46px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; text-align: center; }
+  h1 .grad { background: linear-gradient(135deg,#A78BFA,var(--accent-glow)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-sub { font-size: 15px; color: var(--text-secondary); line-height: 1.7; max-width: 540px; margin: 0 auto; text-align: center; }
+
+  .input-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin: 36px 0; }
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .form-input, .form-select { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text-primary); font-size: 13px; font-family: var(--sans); outline: none; transition: border-color 0.2s; }
+  .form-input:focus, .form-select:focus { border-color: var(--accent-glow); }
+  .form-select option { background: var(--card); }
+  .stage-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stage-chip { flex: 1; min-width: 130px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.2s; text-align: center; }
+  .stage-chip.active { border-color: var(--accent-glow); background: rgba(37,99,235,0.1); }
+  .stage-chip-label { font-size: 12px; font-weight: 600; }
+  .stage-chip-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .simulate-btn { width: 100%; padding: 14px; border-radius: 10px; background: linear-gradient(135deg,var(--accent),var(--purple)); border: none; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); letter-spacing: 0.04em; box-shadow: 0 0 24px rgba(124,58,237,0.3); transition: all 0.2s; }
+  .simulate-btn:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(124,58,237,0.45); }
+  .simulate-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .loading { display: none; margin-top: 18px; text-align: center; }
+  .loading.visible { display: block; }
+  .loading-text { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .loading-bar { height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .loading-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--purple)); animation: scan 1.5s ease-in-out infinite; width: 40%; }
+  @keyframes scan { 0%{transform:translateX(-150%)} 100%{transform:translateX(450%)} }
+  .error-box { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 14px; color: var(--danger); font-size: 13px; margin-top: 14px; display: none; }
+  .error-box.visible { display: block; }
+
+  .results { display: none; }
+  .results.visible { display: block; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .results-title { font-size: 18px; font-weight: 700; }
+  .results-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .reset-btn { background: none; border: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
+  .reset-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+
+  .summary-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 32px; }
+  .summary-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
+  .summary-val { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .summary-lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 0.06em; margin-top: 4px; text-transform: uppercase; }
+
+  .pipeline-track { position: relative; margin-bottom: 32px; }
+  .pipeline-line { position: absolute; left: 24px; top: 12px; bottom: 12px; width: 2px; background: linear-gradient(180deg, var(--accent), var(--purple), var(--border)); }
+  .pipeline-stage { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 24px; position: relative; }
+  .pipeline-node { width: 48px; height: 48px; border-radius: 50%; border: 2px solid; display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;z-index:2;background:var(--bg); font-family: var(--mono); font-weight: 700; }
+  .pipeline-node.done { border-color: var(--success); color: var(--success); }
+  .pipeline-node.active { border-color: var(--accent-glow); color: var(--accent-glow); box-shadow: 0 0 16px rgba(59,130,246,0.4); }
+  .pipeline-node.future { border-color: var(--border-bright); color: var(--text-muted); }
+  .pipeline-content { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; flex: 1; }
+  .pipeline-content.current { border-color: rgba(59,130,246,0.4); }
+  .stage-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px; }
+  .pipeline-stage-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--accent-glow); }
+  .current-tag { font-size: 9px; font-weight: 700; background: rgba(59,130,246,0.15); color: var(--accent-glow); padding: 2px 10px; border-radius: 20px; letter-spacing: 0.06em; }
+  .pipeline-content h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .pipeline-content p { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+  .pipeline-meta { display: flex; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
+  .pipeline-stat { font-family: var(--mono); font-size: 11px; }
+  .pipeline-stat .val { color: var(--text-primary); font-weight: 600; }
+  .pipeline-stat .lbl { color: var(--text-muted); }
+
+  .dash-section { margin-bottom: 28px; }
+  .dash-section-label { font-family: var(--mono); font-size: 11px; color: var(--accent-glow); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
+  .risk-card { background: rgba(249,115,22,0.05); border: 1px solid rgba(249,115,22,0.25); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }
+  .risk-title { font-size: 13px; font-weight: 700; color: var(--warning); margin-bottom: 4px; }
+  .risk-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+  .action-card { background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; }
+  .action-num { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--success); flex-shrink: 0; }
+  .action-text { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+  .disclaimer { margin-top: 24px; padding: 14px; background: var(--card); border-radius: 10px; border: 1px solid var(--border); font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+  .bottom-note { text-align: center; margin-top: 32px; font-size: 11px; color: var(--text-muted); line-height: 1.9; }
+  .bottom-note a { color: var(--accent-glow); text-decoration: none; }
+
+  @media(max-width:600px) {
+    nav { padding: 0 16px; }
+    .main { padding: 90px 16px 60px; }
+    .input-grid { grid-template-columns: 1fr; }
+    .summary-stats { grid-template-columns: 1fr; }
+    .pipeline-stage { gap: 14px; }
+    .pipeline-content { padding: 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">⚡</div>
+    <span class="nav-logo-text">CipherGrid</span>
+  </a>
+  <a class="nav-back" href="index.html">← Back to Platform</a>
+</nav>
+
+<div class="main">
+
+  <div class="hero">
+    <div class="hero-badge">CONTRACT PIPELINE · INVESTOR-READY</div>
+    <h1>Government Contract<br/><span class="grad">Pipeline Simulator</span></h1>
+    <p class="hero-sub">See your exact path from current stage to DoD contract — timeline, success rates, and budget at every step. Built for investor decks and SBIR planning.</p>
+  </div>
+
+  <div class="input-panel">
+    <div class="input-grid">
+      <div>
+        <label class="form-label">Technology / Project Name</label>
+        <input class="form-input" id="tech-name" placeholder="e.g. FluxVector Node (FVU-01)"/>
+      </div>
+      <div>
+        <label class="form-label">Technology Field</label>
+        <select class="form-select" id="tech-field">
+          <option value="">Select a field...</option>
+          <option>Electromagnetic / Power Systems</option>
+          <option>Propulsion / Aerospace</option>
+          <option>Software / AI</option>
+          <option>Biomedical / Health</option>
+          <option>Robotics / Automation</option>
+          <option>Defense / Security</option>
+          <option>Clean Energy</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="form-label">Current Stage</label>
+    <div class="stage-picker" id="stage-picker">
+      <div class="stage-chip" data-stage="concept" onclick="selectStage('concept')">
+        <div class="stage-chip-label">Concept / IP Filing</div>
+        <div class="stage-chip-sub">Patent pending, no prototype</div>
+      </div>
+      <div class="stage-chip" data-stage="prototype" onclick="selectStage('prototype')">
+        <div class="stage-chip-label">Working Prototype</div>
+        <div class="stage-chip-sub">Built, tested, data captured</div>
+      </div>
+      <div class="stage-chip" data-stage="phase1" onclick="selectStage('phase1')">
+        <div class="stage-chip-label">SBIR Phase I</div>
+        <div class="stage-chip-sub">Awarded or applying</div>
+      </div>
+      <div class="stage-chip" data-stage="phase2" onclick="selectStage('phase2')">
+        <div class="stage-chip-label">SBIR Phase II</div>
+        <div class="stage-chip-sub">In development</div>
+      </div>
+    </div>
+
+    <button class="simulate-btn" id="simulate-btn" onclick="runSimulation()">🚀 Simulate My Pipeline</button>
+    <div class="loading" id="sim-loading">
+      <div class="loading-text">Mapping your path through the DoD acquisition pipeline...</div>
+      <div class="loading-bar"><div class="loading-fill"></div></div>
+    </div>
+    <div class="error-box" id="sim-error"></div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="results-header">
+      <div>
+        <div class="results-title" id="results-title">Your Pipeline</div>
+        <div class="results-sub" id="results-sub"></div>
+      </div>
+      <button class="reset-btn" onclick="resetSim()">New Simulation</button>
+    </div>
+
+    <div class="summary-stats">
+      <div class="summary-box"><div class="summary-val" id="stat-timeline" style="color:var(--accent-glow)">—</div><div class="summary-lbl">Est. Total Timeline</div></div>
+      <div class="summary-box"><div class="summary-val" id="stat-budget" style="color:var(--gold)">—</div><div class="summary-lbl">Est. Total Funding Path</div></div>
+      <div class="summary-box"><div class="summary-val" id="stat-success" style="color:var(--success)">—</div><div class="summary-lbl">Est. Overall Success Rate</div></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">📍 YOUR PATH FORWARD</div>
+      <div class="pipeline-track">
+        <div class="pipeline-line"></div>
+        <div id="stages-list"></div>
+      </div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">⚠ RISK FACTORS TO WATCH</div>
+      <div id="risks-list"></div>
+    </div>
+
+    <div class="dash-section">
+      <div class="dash-section-label">✓ RECOMMENDED NEXT ACTIONS</div>
+      <div id="actions-list"></div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠ This simulation is AI-assisted and informational only. Timelines, success rates, and budget estimates are approximations based on historical SBIR/STTR program data and may vary significantly by agency, technology readiness, and competition. Not a guarantee of award or timeline.
+    </div>
+  </div>
+
+  <div class="bottom-note">
+    AI-assisted pipeline modeling · Based on historical DoD SBIR/STTR data<br/>
+    <a href="index.html">← Back to CipherGrid Platform</a>
+  </div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are a government contract pipeline simulator for CipherGrid, a defense-tech intelligence platform. Given a technology and its current development stage, generate a realistic roadmap from current position to DoD contract or licensing, covering SBIR Phase I, Phase II, and transition/procurement.
+
+Respond ONLY with valid JSON, no markdown, no preamble:
+{
+  "summary": "one sentence summary of the path ahead",
+  "totalTimeline": "e.g. 3.5 years",
+  "totalBudget": "e.g. $50K-$2.5M",
+  "successRate": "e.g. ~8%",
+  "stages": [
+    {
+      "status": "done | active | future",
+      "label": "e.g. STAGE 1 · SBIR PHASE I",
+      "title": "short stage title",
+      "description": "1-2 sentence description specific to their technology and field",
+      "timeline": "e.g. 6 months",
+      "budget": "e.g. $50K-$275K",
+      "successRate": "e.g. ~15%"
+    }
+  ],
+  "risks": [
+    { "title": "short risk title", "description": "1-2 sentence description of the risk specific to their stage and field" }
+  ],
+  "actions": [
+    "specific recommended next action, 1 sentence"
+  ]
+}
+
+Include 3-4 stages starting from their current stage through to contract/transition. Mark their current stage as "active", anything before as "done", anything after as "future". Provide 2-3 risks and 3-4 actions. Be specific to their technology field and realistic about defense acquisition timelines.`;
+
+let selectedStage = 'concept';
+const stageLabels = {
+  concept: 'Concept / IP Filing',
+  prototype: 'Working Prototype',
+  phase1: 'SBIR Phase I',
+  phase2: 'SBIR Phase II'
+};
+
+function selectStage(stage) {
+  selectedStage = stage;
+  document.querySelectorAll('.stage-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.stage-chip[data-stage="${stage}"]`).classList.add('active');
+}
+selectStage('concept');
+
+async function callClaude(userText) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userText }]
+    })
+  });
+  const data = await res.json();
+  const text = data.content?.map(b => b.text || '').join('') || '';
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
+async function runSimulation() {
+  const techName = document.getElementById('tech-name').value.trim() || 'Your Technology';
+  const field = document.getElementById('tech-field').value;
+  const btn = document.getElementById('simulate-btn');
+  const loading = document.getElementById('sim-loading');
+  const errBox = document.getElementById('sim-error');
+
+  btn.disabled = true;
+  loading.classList.add('visible');
+  errBox.classList.remove('visible');
+  document.getElementById('results').classList.remove('visible');
+
+  try {
+    const prompt = `Technology: ${techName}\nField: ${field || 'Not specified'}\nCurrent Stage: ${stageLabels[selectedStage]}\n\nGenerate a government contract pipeline simulation showing the path from this current stage to DoD contract or licensing.`;
+    const result = await callClaude(prompt);
+    renderResults(result, techName);
+  } catch (e) {
+    errBox.textContent = 'Simulation failed. Please try again.';
+    errBox.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('visible');
+  }
+}
+
+function renderResults(data, techName) {
+  const { summary, totalTimeline, totalBudget, successRate, stages = [], risks = [], actions = [] } = data;
+
+  document.getElementById('results-title').textContent = 'Pipeline: ' + techName;
+  document.getElementById('results-sub').textContent = summary || '';
+  document.getElementById('stat-timeline').textContent = totalTimeline || '—';
+  document.getElementById('stat-budget').textContent = totalBudget || '—';
+  document.getElementById('stat-success').textContent = successRate || '—';
+
+  document.getElementById('stages-list').innerHTML = stages.map((s, idx) => {
+    const nodeClass = s.status === 'done' ? 'done' : s.status === 'active' ? 'active' : 'future';
+    const nodeIcon = s.status === 'done' ? '✓' : (idx + 1);
+    const contentClass = s.status === 'active' ? 'current' : '';
+    return `
+      <div class="pipeline-stage">
+        <div class="pipeline-node ${nodeClass}">${nodeIcon}</div>
+        <div class="pipeline-content ${contentClass}">
+          <div class="stage-label-row">
+            <div class="pipeline-stage-label">${s.label||''}</div>
+            ${s.status === 'active' ? '<span class="current-tag">YOU ARE HERE</span>' : ''}
+          </div>
+          <h4>${s.title||''}</h4>
+          <p>${s.description||''}</p>
+          <div class="pipeline-meta">
+            <div class="pipeline-stat"><span class="val">${s.budget||'—'}</span> <span class="lbl">budget</span></div>
+            <div class="pipeline-stat"><span class="val">${s.successRate||'—'}</span> <span class="lbl">success rate</span></div>
+            <div class="pipeline-stat"><span class="val">${s.timeline||'—'}</span> <span class="lbl">timeline</span></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('risks-list').innerHTML = risks.map(r => `
+    <div class="risk-card">
+      <div class="risk-title">⚠ ${r.title||''}</div>
+      <div class="risk-desc">${r.description||''}</div>
+    </div>`).join('');
+
+  document.getElementById('actions-list').innerHTML = actions.map((a, i) => `
+    <div class="action-card">
+      <div class="action-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="action-text">${a}</div>
+    </div>`).join('');
+
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetSim() {
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('tech-name').value = '';
+  document.getElementById('tech-field').value = '';
+  selectStage('concept');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
