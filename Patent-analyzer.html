@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Patent Conflict Analyzer — CipherGrid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080C18;
+    --surface: #0D1321;
+    --card: #111827;
+    --border: #1A2540;
+    --border-bright: #243050;
+    --accent: #2563EB;
+    --accent-glow: #3B82F6;
+    --purple: #7C3AED;
+    --gold: #F59E0B;
+    --success: #10B981;
+    --warning: #F97316;
+    --danger: #EF4444;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #4B5563;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text-primary); font-family: var(--sans); line-height: 1.6; min-height: 100vh; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 60px;
+    background: rgba(8,12,24,0.95); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+  .nav-logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg,var(--accent),var(--purple)); border-radius: 8px; display:flex;align-items:center;justify-content:center;font-size:14px; }
+  .nav-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); }
+  .nav-back { color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+  .nav-back:hover { color: var(--accent-glow); }
+
+  /* MAIN */
+  .main { max-width: 720px; margin: 0 auto; padding: 100px 24px 80px; }
+
+  /* HERO */
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(37,99,235,0.12); border: 1px solid rgba(59,130,246,0.3); border-radius: 20px; padding: 6px 16px; font-size: 11px; font-weight: 600; color: var(--accent-glow); letter-spacing: 0.1em; margin-bottom: 20px; font-family: var(--mono); }
+  .hero-badge::before { content:''; width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success); }
+  h1 { font-size: clamp(28px,5vw,46px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 14px; }
+  h1 .grad { background: linear-gradient(135deg,var(--accent-glow),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .hero-sub { font-size: 15px; color: var(--text-secondary); line-height: 1.7; max-width: 500px; margin: 0 auto; }
+
+  /* TRUST STRIP */
+  .trust-strip { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 36px; }
+  .trust-tag { font-size: 11px; color: var(--text-secondary); background: var(--card); border: 1px solid var(--border); padding: 5px 13px; border-radius: 20px; }
+
+  /* SAMPLE TOGGLE */
+  .sample-toggle { text-align: center; margin-bottom: 28px; }
+  .sample-btn { background: none; border: 1px solid rgba(245,158,11,0.4); color: var(--gold); font-size: 12px; font-weight: 600; padding: 7px 18px; border-radius: 20px; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
+  .sample-btn:hover { background: rgba(245,158,11,0.08); }
+
+  /* SAMPLE REPORT */
+  .sample-report { background: var(--card); border: 1px solid rgba(245,158,11,0.25); border-radius: 14px; padding: 24px; margin-bottom: 32px; display: none; }
+  .sample-report.visible { display: block; }
+  .sample-header { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+  .sample-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+  .sample-label { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; }
+  .sample-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .sample-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+
+  /* MATCH CARDS */
+  .match-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 10px; }
+  .match-header { display: flex; align-items: flex-start; gap: 14px; justify-content: space-between; }
+  .match-info { flex: 1; }
+  .match-type { font-family: var(--mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .match-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .match-assignee { font-size: 12px; color: var(--text-secondary); }
+  .score-badge { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; }
+  .score-circle { width: 46px; height: 46px; border-radius: 50%; border: 2px solid; display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--mono); }
+  .score-high { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 10px rgba(239,68,68,0.25); }
+  .score-med { border-color: var(--warning); color: var(--warning); box-shadow: 0 0 10px rgba(249,115,22,0.25); }
+  .score-low { border-color: var(--gold); color: var(--gold); }
+  .score-min { border-color: var(--success); color: var(--success); }
+  .score-risk { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; }
+  .expand-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); font-size: 11px; padding: 4px 12px; border-radius: 6px; cursor: pointer; margin-top: 10px; font-family: var(--sans); transition: all 0.2s; }
+  .expand-btn:hover { border-color: var(--border-bright); color: var(--text-secondary); }
+  .overlap-list { margin-top: 10px; display: none; }
+  .overlap-list.visible { display: block; }
+  .overlap-item { font-size: 12px; color: var(--text-secondary); padding: 5px 10px; background: rgba(249,115,22,0.06); border-left: 3px solid var(--warning); border-radius: 4px; margin-bottom: 6px; }
+
+  /* AI SUMMARY BOX */
+  .ai-summary { background: rgba(37,99,235,0.06); border: 1px solid rgba(59,130,246,0.25); border-radius: 10px; padding: 16px 18px; margin-top: 14px; }
+  .ai-summary-label { font-family: var(--mono); font-size: 10px; color: var(--accent-glow); letter-spacing: 0.1em; margin-bottom: 8px; }
+  .ai-summary p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+
+  /* UNIQUE LIST */
+  .unique-section { margin-top: 14px; }
+  .unique-label { font-family: var(--mono); font-size: 10px; color: var(--success); letter-spacing: 0.1em; margin-bottom: 8px; }
+  .unique-item { font-size: 12px; color: var(--text-secondary); padding: 5px 10px; background: rgba(16,185,129,0.06); border-left: 3px solid var(--success); border-radius: 4px; margin-bottom: 6px; }
+
+  /* ANALYZER PANEL */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+
+  /* TABS */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .tab { flex: 1; padding: 15px 0; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
+  .tab.active { background: var(--card); border-bottom-color: var(--accent-glow); color: var(--text-primary); font-weight: 700; }
+
+  /* FORMS */
+  .tab-content { padding: 28px; display: none; }
+  .tab-content.active { display: block; }
+  .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 52px 24px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 20px; }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--accent-glow); background: rgba(37,99,235,0.04); }
+  .drop-icon { font-size: 38px; margin-bottom: 12px; }
+  .drop-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .drop-sub { font-size: 12px; color: var(--text-muted); }
+  .drop-sub span { color: var(--accent-glow); }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .form-input, .form-select, .form-textarea { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; color: var(--text-primary); font-size: 13px; font-family: var(--sans); outline: none; transition: border-color 0.2s; margin-bottom: 14px; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent-glow); }
+  .form-textarea { min-height: 130px; resize: vertical; line-height: 1.65; }
+  .form-select option { background: var(--card); }
+  .analyze-btn { width: 100%; padding: 14px; border-radius: 10px; background: linear-gradient(135deg,var(--accent),#1D4ED8); border: none; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); letter-spacing: 0.04em; box-shadow: 0 0 24px rgba(37,99,235,0.35); transition: all 0.2s; }
+  .analyze-btn:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(37,99,235,0.5); }
+  .analyze-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* LOADING */
+  .loading { display: none; margin-top: 16px; text-align: center; }
+  .loading.visible { display: block; }
+  .loading-text { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .loading-bar { height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .loading-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--purple)); animation: scan 1.5s ease-in-out infinite; width: 40%; }
+  @keyframes scan { 0%{transform:translateX(-150%)} 100%{transform:translateX(450%)} }
+
+  /* RESULTS */
+  .results { display: none; padding: 28px; border-top: 1px solid var(--border); }
+  .results.visible { display: block; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .results-title { font-size: 17px; font-weight: 700; }
+  .results-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .reset-btn { background: none; border: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: var(--sans); transition: all 0.2s; }
+  .reset-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+  .stats-row { display: flex; gap: 10px; margin-bottom: 24px; }
+  .stat-box { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 26px; font-weight: 700; }
+  .stat-lbl { font-size: 10px; color: var(--text-muted); letter-spacing: 0.08em; margin-top: 3px; }
+
+  /* ERROR */
+  .error-box { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 14px; color: var(--danger); font-size: 13px; margin-top: 14px; display: none; }
+  .error-box.visible { display: block; }
+
+  /* DISCLAIMER */
+  .disclaimer { margin-top: 24px; padding: 14px; background: var(--card); border-radius: 10px; border: 1px solid var(--border); font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+
+  /* BOTTOM */
+  .bottom-note { text-align: center; margin-top: 32px; font-size: 11px; color: var(--text-muted); line-height: 1.9; }
+  .bottom-note a { color: var(--accent-glow); text-decoration: none; }
+
+  @media(max-width:600px) {
+    nav { padding: 0 16px; }
+    .main { padding: 90px 16px 60px; }
+    .stats-row { flex-direction: row; }
+    .stat-val { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="nav-logo-icon">⚡</div>
+    <span class="nav-logo-text">CipherGrid</span>
+  </a>
+  <a class="nav-back" href="index.html">← Back to Platform</a>
+</nav>
+
+<div class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">PATENT INTELLIGENCE · AI-POWERED</div>
+    <h1>Patent Conflict<br/><span class="grad">Analyzer</span></h1>
+    <p class="hero-sub">Know before you file. Upload your patent or describe your invention — we scan universities, defense contractors, and corporations for conflicts.</p>
+  </div>
+
+  <!-- TRUST STRIP -->
+  <div class="trust-strip">
+    <div class="trust-tag">🏛 Universities</div>
+    <div class="trust-tag">🔬 Research Labs</div>
+    <div class="trust-tag">🛡 Defense Contractors</div>
+    <div class="trust-tag">🏢 Corporations</div>
+    <div class="trust-tag">📋 USPTO Database</div>
+  </div>
+
+  <!-- SAMPLE TOGGLE -->
+  <div class="sample-toggle">
+    <button class="sample-btn" onclick="toggleSample()">▼ See a Sample Analysis Report</button>
+  </div>
+
+  <!-- SAMPLE REPORT -->
+  <div class="sample-report" id="sample-report">
+    <div class="sample-header">
+      <div class="sample-dot"></div>
+      <div class="sample-label">SAMPLE ANALYSIS REPORT</div>
+    </div>
+    <div class="sample-title">Electromagnetic Flux Vector Control System</div>
+    <div class="sample-meta">Filed 2024-03-15 · Independent Inventor</div>
+
+    <div class="match-card">
+      <div class="match-header">
+        <div class="match-info">
+          <div class="match-type">MATCH #1 · UNIVERSITY / DEFENSE · 2022</div>
+          <div class="match-title">Adaptive Flux Density Modulation Array</div>
+          <div class="match-assignee">MIT Lincoln Laboratory</div>
+        </div>
+        <div class="score-badge">
+          <div class="score-circle score-high">87%</div>
+          <div class="score-risk" style="color:var(--danger)">HIGH RISK</div>
+        </div>
+      </div>
+      <button class="expand-btn" onclick="toggleOverlap(this)">▼ Show overlap</button>
+      <div class="overlap-list">
+        <div class="overlap-item">⚠ Variable reluctance core geometry</div>
+        <div class="overlap-item">⚠ Multi-axis field vectoring</div>
+      </div>
+    </div>
+
+    <div class="match-card">
+      <div class="match-header">
+        <div class="match-info">
+          <div class="match-type">MATCH #2 · DEFENSE CONTRACTOR · 2021</div>
+          <div class="match-title">Electromagnetic Propulsion with Dynamic Coil Switching</div>
+          <div class="match-assignee">Lockheed Martin Advanced Programs</div>
+        </div>
+        <div class="score-badge">
+          <div class="score-circle score-med">64%</div>
+          <div class="score-risk" style="color:var(--warning)">MODERATE</div>
+        </div>
+      </div>
+      <button class="expand-btn" onclick="toggleOverlap(this)">▼ Show overlap</button>
+      <div class="overlap-list">
+        <div class="overlap-item">⚠ Sequential coil activation</div>
+        <div class="overlap-item">⚠ Pulse-width modulation control</div>
+      </div>
+    </div>
+
+    <div class="match-card">
+      <div class="match-header">
+        <div class="match-info">
+          <div class="match-type">MATCH #3 · CORPORATION · 2020</div>
+          <div class="match-title">High-Efficiency Brushless Motor Architecture</div>
+          <div class="match-assignee">Tesla Inc.</div>
+        </div>
+        <div class="score-badge">
+          <div class="score-circle score-low">31%</div>
+          <div class="score-risk" style="color:var(--gold)">LOW</div>
+        </div>
+      </div>
+      <button class="expand-btn" onclick="toggleOverlap(this)">▼ Show overlap</button>
+      <div class="overlap-list">
+        <div class="overlap-item">⚠ Winding layer optimization</div>
+      </div>
+    </div>
+
+    <div class="ai-summary">
+      <div class="ai-summary-label">AI ANALYSIS SUMMARY</div>
+      <p>Your invention shares core flux vectoring concepts with MIT Lincoln Laboratory's 2022 filing, but your multi-node distributed architecture and patent-pending FVU-01 geometry appear structurally distinct. Recommend IP counsel review claims 1–4 for differentiation language.</p>
+    </div>
+    <div class="unique-section">
+      <div class="unique-label">✓ POTENTIALLY UNIQUE ELEMENTS</div>
+      <div class="unique-item">Distributed node mesh topology</div>
+      <div class="unique-item">Cross-axis flux cancellation method</div>
+      <div class="unique-item">Adaptive bobbin geometry</div>
+    </div>
+  </div>
+
+  <!-- ANALYZER PANEL -->
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('upload')">📄 Upload Document</button>
+      <button class="tab" onclick="switchTab('describe')">✏️ Describe Invention</button>
+    </div>
+
+    <!-- UPLOAD TAB -->
+    <div class="tab-content active" id="tab-upload">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave()" ondrop="handleDrop(event)">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title" id="drop-title">Drop your patent document here</div>
+        <div class="drop-sub" id="drop-sub">PDF, PNG, JPG supported · <span>Click to browse</span></div>
+      </div>
+      <input type="file" id="file-input" accept=".pdf,image/*" style="display:none" onchange="handleFileSelect(event)"/>
+      <button class="analyze-btn" id="upload-btn" onclick="analyzeUpload()" disabled>⚡ Analyze for Conflicts</button>
+      <div class="loading" id="upload-loading">
+        <div class="loading-text">Scanning patent databases across institutions and universities...</div>
+        <div class="loading-bar"><div class="loading-fill"></div></div>
+      </div>
+      <div class="error-box" id="upload-error"></div>
+    </div>
+
+    <!-- DESCRIBE TAB -->
+    <div class="tab-content" id="tab-describe">
+      <label class="form-label">Invention Title (Optional)</label>
+      <input class="form-input" id="inv-title" placeholder="e.g. Electromagnetic Flux Vector Node"/>
+      <label class="form-label">Technology Field</label>
+      <select class="form-select" id="inv-field">
+        <option value="">Select a field...</option>
+        <option>Electromagnetic / Power Systems</option>
+        <option>Propulsion / Aerospace</option>
+        <option>Software / AI</option>
+        <option>Biomedical / Health</option>
+        <option>Robotics / Automation</option>
+        <option>Defense / Security</option>
+        <option>Clean Energy</option>
+        <option>Other</option>
+      </select>
+      <label class="form-label">Describe Your Invention *</label>
+      <textarea class="form-textarea" id="inv-desc" placeholder="Describe how your invention works, what makes it unique, its core mechanism, and any key components. The more detail you provide, the more accurate the conflict analysis will be..."></textarea>
+      <button class="analyze-btn" id="describe-btn" onclick="analyzeDescription()">🔍 Search for Prior Art</button>
+      <div class="loading" id="describe-loading">
+        <div class="loading-text">Searching prior art across DoD labs, universities, and corporations...</div>
+        <div class="loading-bar"><div class="loading-fill"></div></div>
+      </div>
+      <div class="error-box" id="describe-error"></div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results" id="results">
+      <div class="results-header">
+        <div>
+          <div class="results-title" id="results-title">Analysis Complete</div>
+          <div class="results-sub" id="results-sub"></div>
+        </div>
+        <button class="reset-btn" onclick="resetAnalyzer()">New Analysis</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-val" id="stat-conflicts" style="color:var(--warning)">—</div>
+          <div class="stat-lbl">CONFLICTS FOUND</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-unique" style="color:var(--success)">—</div>
+          <div class="stat-lbl">UNIQUE ELEMENTS</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-confidence" style="color:var(--gold)">—</div>
+          <div class="stat-lbl">CONFIDENCE</div>
+        </div>
+      </div>
+      <div id="results-matches"></div>
+      <div class="ai-summary" id="results-summary" style="display:none">
+        <div class="ai-summary-label">AI ANALYSIS SUMMARY</div>
+        <p id="results-summary-text"></p>
+      </div>
+      <div class="unique-section" id="results-unique" style="display:none">
+        <div class="unique-label">✓ POTENTIALLY UNIQUE ELEMENTS</div>
+        <div id="results-unique-list"></div>
+      </div>
+      <div class="disclaimer">
+        ⚠ This analysis is AI-assisted and informational only. It does not constitute legal advice. CipherGrid recommends consulting a registered patent attorney before filing. Results are based on publicly available patent databases.
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-note">
+    AI-assisted analysis · Not legal advice · Always consult a registered patent attorney<br/>
+    <a href="index.html">← Back to CipherGrid Platform</a>
+  </div>
+
+</div>
+
+<script>
+const SYSTEM_PROMPT = `You are a patent conflict analysis AI for CipherGrid, a defense-tech intelligence platform. Analyze inventions and identify potential patent conflicts with existing filings from institutions, universities, corporations, and defense contractors.
+
+Respond ONLY with valid JSON, no markdown, no preamble:
+{
+  "title": "inferred invention title",
+  "matches": [
+    {
+      "score": 0-100,
+      "title": "similar patent title",
+      "assignee": "company/university/person",
+      "type": "University / Defense | Defense Contractor | Corporation | Independent Inventor | Government Agency",
+      "year": 2020,
+      "overlap": ["specific overlapping claim or concept"]
+    }
+  ],
+  "summary": "2-3 sentence analysis of conflict risk and differentiation strategy",
+  "unique": ["potentially unique element to emphasize in claims"],
+  "confidence": "high | medium | low"
+}
+
+Provide 2-5 realistic matches. Be specific about overlap. Score honestly — 80+ means serious conflict risk.`;
+
+let selectedFile = null;
+
+// TAB SWITCHING
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  hideResults();
+}
+
+// DRAG AND DROP
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag'); }
+function handleDragLeave() { document.getElementById('drop-zone').classList.remove('drag'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+}
+function handleFileSelect(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
+function setFile(f) {
+  if (!f.type.startsWith('image/') && f.type !== 'application/pdf') return;
+  selectedFile = f;
+  document.getElementById('drop-title').textContent = f.name;
+  document.getElementById('drop-sub').textContent = (f.size/1024).toFixed(1) + ' KB · Ready to analyze';
+  document.getElementById('upload-btn').disabled = false;
+}
+
+// SAMPLE TOGGLE
+function toggleSample() {
+  const el = document.getElementById('sample-report');
+  const btn = document.querySelector('.sample-btn');
+  el.classList.toggle('visible');
+  btn.textContent = el.classList.contains('visible') ? '▲ Hide Sample Report' : '▼ See a Sample Analysis Report';
+}
+
+// OVERLAP TOGGLE
+function toggleOverlap(btn) {
+  const list = btn.nextElementSibling;
+  list.classList.toggle('visible');
+  btn.textContent = list.classList.contains('visible') ? '▲ Hide overlap' : '▼ Show overlap';
+}
+
+// TO BASE64
+function toBase64(f) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(f);
+  });
+}
+
+// CALL API
+async function callClaude(messages) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, system: SYSTEM_PROMPT, messages })
+  });
+  const data = await res.json();
+  const text = data.content?.map(b => b.text || '').join('') || '';
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
+// ANALYZE UPLOAD
+async function analyzeUpload() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('upload-btn');
+  const loading = document.getElementById('upload-loading');
+  const errBox = document.getElementById('upload-error');
+  btn.disabled = true;
+  loading.classList.add('visible');
+  errBox.classList.remove('visible');
+  hideResults();
+  try {
+    const b64 = await toBase64(selectedFile);
+    const isPdf = selectedFile.type === 'application/pdf';
+    const content = isPdf
+      ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } }, { type: 'text', text: 'Analyze this patent document. Identify the core invention, claims, and key mechanisms. Then find 2-5 conflicting patents from universities, corporations, defense contractors, or government agencies.' }]
+      : [{ type: 'image', source: { type: 'base64', media_type: selectedFile.type, data: b64 } }, { type: 'text', text: 'Analyze this patent drawing or image. Identify the invention type and technology. Then find 2-5 conflicting patents from universities, corporations, defense contractors, or government agencies.' }];
+    const result = await callClaude([{ role: 'user', content }]);
+    showResults(result);
+  } catch(e) {
+    errBox.textContent = 'Analysis failed. Please check your file format and try again.';
+    errBox.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('visible');
+  }
+}
+
+// ANALYZE DESCRIPTION
+async function analyzeDescription() {
+  const desc = document.getElementById('inv-desc').value.trim();
+  if (!desc) { document.getElementById('inv-desc').focus(); return; }
+  const btn = document.getElementById('describe-btn');
+  const loading = document.getElementById('describe-loading');
+  const errBox = document.getElementById('describe-error');
+  btn.disabled = true;
+  loading.classList.add('visible');
+  errBox.classList.remove('visible');
+  hideResults();
+  try {
+    const title = document.getElementById('inv-title').value.trim();
+    const field = document.getElementById('inv-field').value;
+    const prompt = `Analyze this invention for patent conflicts:\n\nTitle: ${title || 'Not provided'}\nField: ${field || 'Not specified'}\nDescription: ${desc}\n\nFind 2-5 conflicting patents from universities, corporations, defense contractors, or government agencies.`;
+    const result = await callClaude([{ role: 'user', content: prompt }]);
+    showResults(result);
+  } catch(e) {
+    errBox.textContent = 'Analysis failed. Please try again.';
+    errBox.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('visible');
+  }
+}
+
+// SHOW RESULTS
+function showResults(data) {
+  const { title, matches = [], summary, unique = [], confidence } = data;
+  document.getElementById('results-title').textContent = title || 'Analysis Complete';
+  document.getElementById('results-sub').textContent = `${matches.length} potential conflict${matches.length !== 1 ? 's' : ''} identified`;
+  document.getElementById('stat-conflicts').textContent = matches.length;
+  document.getElementById('stat-unique').textContent = unique.length;
+  document.getElementById('stat-confidence').textContent = (confidence || 'medium').toUpperCase();
+
+  const matchesEl = document.getElementById('results-matches');
+  matchesEl.innerHTML = matches.map((m, i) => {
+    const s = m.score;
+    const cls = s >= 80 ? 'score-high' : s >= 60 ? 'score-med' : s >= 40 ? 'score-low' : 'score-min';
+    const risk = s >= 80 ? 'HIGH RISK' : s >= 60 ? 'MODERATE' : s >= 40 ? 'LOW' : 'MINIMAL';
+    const riskColor = s >= 80 ? 'var(--danger)' : s >= 60 ? 'var(--warning)' : s >= 40 ? 'var(--gold)' : 'var(--success)';
+    return `
+      <div class="match-card">
+        <div class="match-header">
+          <div class="match-info">
+            <div class="match-type">MATCH #${i+1} · ${(m.type||'').toUpperCase()} · ${m.year||''}</div>
+            <div class="match-title">${m.title||''}</div>
+            <div class="match-assignee">${m.assignee||''}</div>
+          </div>
+          <div class="score-badge">
+            <div class="score-circle ${cls}">${s}%</div>
+            <div class="score-risk" style="color:${riskColor}">${risk}</div>
+          </div>
+        </div>
+        <button class="expand-btn" onclick="toggleOverlap(this)">▼ Show overlap</button>
+        <div class="overlap-list">
+          ${(m.overlap||[]).map(o=>`<div class="overlap-item">⚠ ${o}</div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  if (summary) {
+    document.getElementById('results-summary-text').textContent = summary;
+    document.getElementById('results-summary').style.display = 'block';
+  }
+  if (unique.length) {
+    document.getElementById('results-unique-list').innerHTML = unique.map(u=>`<div class="unique-item">${u}</div>`).join('');
+    document.getElementById('results-unique').style.display = 'block';
+  }
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function hideResults() {
+  const r = document.getElementById('results');
+  r.classList.remove('visible');
+  document.getElementById('results-summary').style.display = 'none';
+  document.getElementById('results-unique').style.display = 'none';
+}
+
+function resetAnalyzer() {
+  hideResults();
+  selectedFile = null;
+  document.getElementById('drop-title').textContent = 'Drop your patent document here';
+  document.getElementById('drop-sub').innerHTML = 'PDF, PNG, JPG supported · <span>Click to browse</span>';
+  document.getElementById('upload-btn').disabled = true;
+  document.getElementById('inv-title').value = '';
+  document.getElementById('inv-field').value = '';
+  document.getElementById('inv-desc').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
