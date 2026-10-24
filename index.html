@@ -798,10 +798,7 @@ function copyEmail() {
 }
 
 function submitAccess() {
-  const email = document.getElementById('access-email').value.trim();
-  if (!email || !email.includes('@')) { document.getElementById('access-email').focus(); return; }
-  document.getElementById('success-msg').classList.add('visible');
-  document.getElementById('access-email').value = '';
+  window.location.href = 'https://forms.gle/56kHmEZBurvWrDxe6';
 }
 </script>
 </body>
