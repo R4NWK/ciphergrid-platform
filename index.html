@@ -739,53 +739,108 @@ updateCountdowns();
 setInterval(updateCountdowns, 1000);
 
 // EMAIL GENERATOR
-async function generateEmail() {
-  const name = document.getElementById('inv-name').value.trim() || 'Independent Inventor';
-  const tech = document.getElementById('inv-tech').value.trim() || 'novel electromagnetic system';
-  const lab = document.getElementById('target-lab').value.trim() || 'the program office';
-  const purpose = document.getElementById('email-purpose').value;
-  const desc = document.getElementById('tech-desc').value.trim();
+function generateEmail() {
+  const name = document.getElementById('inv-name').value.trim()
+    || 'Independent Inventor';
 
-  const purposeLabels = {
-    intro: 'a first-contact introduction',
-    sbir: 'an SBIR application follow-up',
-    collab: 'a research collaboration proposal',
-    demo: 'a request for a demonstration meeting',
-    invest: 'an investor introduction'
-  };
+  const tech = document.getElementById('inv-tech').value.trim()
+    || 'an emerging technology';
+
+  const lab = document.getElementById('target-lab').value.trim()
+    || 'the program office';
+
+  const purpose = document.getElementById('email-purpose').value;
+
+  const desc = document.getElementById('tech-desc').value.trim();
 
   const btn = document.getElementById('gen-btn');
   const loading = document.getElementById('email-loading');
   const output = document.getElementById('email-output');
+  const emailText = document.getElementById('email-text');
+
   btn.disabled = true;
   loading.style.display = 'block';
   output.classList.remove('visible');
 
-  try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: `You are an expert at writing outreach emails to DoD program managers, lab directors, and SBIR coordinators. Your emails are direct, specific, credible, and calibrated to defense culture. No buzzwords. No hollow enthusiasm. Lead with what the technology does, not why it's exciting. Always include a clear, low-friction ask. Keep emails under 200 words. Write only the email body — no subject line prefix, no markdown.`,
-        messages: [{
-          role: 'user',
-          content: `Write ${purposeLabels[purpose]} email from ${name} to ${lab} about their technology: ${tech}. ${desc ? 'Tech description: ' + desc : ''} The email should feel like it came from a serious technical founder, not a marketer.`
-        }]
-      })
-    });
-    const data = await response.json();
-    const text = data.content?.map(b => b.text || '').join('') || 'Unable to generate email. Please try again.';
-    document.getElementById('email-text').textContent = text;
-    output.classList.add('visible');
-  } catch (e) {
-    document.getElementById('email-text').textContent = 'Generation failed. Please check your connection and try again.';
-    output.classList.add('visible');
-  } finally {
-    btn.disabled = false;
-    loading.style.display = 'none';
-  }
+  const descriptions = desc
+    ? `\n\nThe technology is designed to ${desc.replace(/[.!?]+$/, '')}.`
+    : '';
+
+  const templates = {
+
+    intro: `Dear ${lab} Team,
+
+My name is ${name}, and I am developing ${tech}.${descriptions}
+
+I am reaching out to determine whether this technology aligns with your current research priorities.
+
+I would appreciate guidance on the appropriate program manager or submission pathway for a brief technical review.
+
+Thank you for your consideration.
+
+Respectfully,
+${name}`,
+
+    sbir: `Dear ${lab} Team,
+
+My name is ${name}, developer of ${tech}.${descriptions}
+
+I am following up regarding potential SBIR/STTR opportunities relevant to this technology.
+
+Could you advise whether there are current or upcoming topics that may align with this research?
+
+I would welcome the opportunity to provide a concise technical summary.
+
+Respectfully,
+${name}`,
+
+    collab: `Dear ${lab} Team,
+
+I am ${name}, currently developing ${tech}.${descriptions}
+
+I am exploring research collaboration opportunities involving technical evaluation, prototype development, and feasibility testing.
+
+I would appreciate the opportunity to discuss whether this work aligns with your laboratory's research interests.
+
+Would a brief introductory meeting be possible?
+
+Best regards,
+${name}`,
+
+    demo: `Dear ${lab} Team,
+
+My name is ${name}, and I am developing ${tech}.${descriptions}
+
+I would like to request a brief meeting to introduce the technology and discuss its potential applications.
+
+I can provide a technical overview, development status, and proposed validation approach.
+
+Please let me know whether a short introductory discussion would be appropriate.
+
+Respectfully,
+${name}`,
+
+    invest: `Dear ${lab} Team,
+
+My name is ${name}, and I am developing ${tech}.${descriptions}
+
+I am exploring potential funding and strategic partnerships to support prototype development and technical validation.
+
+I would welcome an opportunity to share the development roadmap, current milestones, and proposed funding requirements.
+
+Would you be available for a brief introductory discussion?
+
+Best regards,
+${name}`
+  };
+
+  const email = templates[purpose] || templates.intro;
+
+  emailText.textContent = email;
+  output.classList.add('visible');
+
+  loading.style.display = 'none';
+  btn.disabled = false;
 }
 
 function copyEmail() {
