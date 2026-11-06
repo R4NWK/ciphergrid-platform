@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CipherGrid CreatorIQ — LiveMorph</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080c18;color:white;
+ font-family:Arial,sans-serif;text-align:center
+}
+header{padding:22px;background:#111827}
+h1{margin:0;font-size:26px}
+.subtitle{color:#94a3b8;margin-top:8px}
+#scene{
+ width:100%;height:380px;
+ background:radial-gradient(circle,#202d48,#080c18);
+ touch-action:pan-y
+}
+.panel{padding:20px;max-width:600px;margin:auto}
+input,button{
+ padding:13px;border-radius:8px;
+ border:1px solid #334155;font-size:16px
+}
+input{width:100%;background:#111827;color:white}
+button{
+ background:#2563eb;color:white;
+ margin:6px;cursor:pointer
+}
+button:active{background:#1d4ed8}
+.note{color:#94a3b8;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>CreatorIQ LiveMorph</h1>
+<div class="subtitle">CipherGrid • Interactive Creation Studio</div>
+</header>
+
+<div id="scene"></div>
+
+<div class="panel">
+<h2>Direct Your Creation</h2>
+<input id="command" placeholder="Try: stretch, flatten, pulse, red, blue">
+<br><br>
+<button onclick="applyCommand()">Apply Command</button>
+<button onclick="resetGlob()">Reset</button>
+
+<h3>Quick Controls</h3>
+<button onclick="setShape('stretch')">Stretch</button>
+<button onclick="setShape('flatten')">Flatten</button>
+<button onclick="setShape('pulse')">Pulse</button>
+<button onclick="setColor('#38bdf8')">Blue</button>
+<button onclick="setColor('#ef4444')">Red</button>
+
+<p id="status" class="note">Glob initialized.</p>
+<p class="note">Prototype v0.1 — Character formation and motion controls are coming next.</p>
+</div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+let scene,camera,renderer,glob;
+let pulse=false;
+
+function init(){
+ const container=document.getElementById("scene");
+ scene=new THREE.Scene();
+
+ camera=new THREE.PerspectiveCamera(
+  45,container.clientWidth/container.clientHeight,.1,100
+ );
+ camera.position.z=5;
+
+ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+ renderer.setSize(container.clientWidth,container.clientHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+ container.appendChild(renderer.domElement);
+
+ const geometry=new THREE.SphereGeometry(1.3,64,64);
+ const material=new THREE.MeshStandardMaterial({
+  color:0x38bdf8,metalness:.5,roughness:.25
+ });
+ glob=new THREE.Mesh(geometry,material);
+ scene.add(glob);
+
+ scene.add(new THREE.AmbientLight(0xffffff,1.2));
+ const light=new THREE.DirectionalLight(0xffffff,2);
+ light.position.set(3,4,5);
+ scene.add(light);
+
+ animate();
+}
+
+function animate(){
+ requestAnimationFrame(animate);
+ glob.rotation.y+=.006;
+
+ if(pulse){
+  let s=1+Math.sin(Date.now()*.004)*.12;
+  glob.scale.set(s,s,s);
+ }
+ renderer.render(scene,camera);
+}
+
+function setShape(type){
+ pulse=false;
+ glob.scale.set(1,1,1);
+
+ if(type==="stretch")glob.scale.y=1.6;
+ if(type==="flatten")glob.scale.y=.55;
+ if(type==="pulse")pulse=true;
+
+ document.getElementById("status").textContent=
+ "Motion applied: "+type;
+}
+
+function setColor(color){
+ glob.material.color.set(color);
+ document.getElementById("status").textContent=
+ "Color updated.";
+}
+
+function resetGlob(){
+ pulse=false;
+ glob.scale.set(1,1,1);
+ glob.material.color.set("#38bdf8");
+ document.getElementById("status").textContent=
+ "Glob reset.";
+}
+
+function applyCommand(){
+ const text=document.getElementById("command")
+ .value.toLowerCase();
+
+ if(text.includes("stretch"))setShape("stretch");
+ else if(text.includes("flatten"))setShape("flatten");
+ else if(text.includes("pulse"))setShape("pulse");
+ else if(text.includes("red"))setColor("#ef4444");
+ else if(text.includes("blue"))setColor("#38bdf8");
+ else document.getElementById("status").textContent=
+ "Command not recognized yet.";
+}
+
+window.addEventListener("resize",()=>{
+ const container=document.getElementById("scene");
+ camera.aspect=container.clientWidth/container.clientHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(container.clientWidth,container.clientHeight);
+});
+
+window.applyCommand = applyCommand;
+window.resetGlob = resetGlob;
+window.setShape = setShape;
+window.setColor = setColor;
+
+init();
+</script>
+</body>
+</html>
