@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CreatorIQ v0.2 — Development Lab</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#080c18;color:#f8fafc;
+ font-family:Arial,sans-serif;
+}
+header{
+ padding:20px;text-align:center;
+ background:#111827;border-bottom:1px solid #334155;
+}
+h1{margin:0;font-size:25px}
+.subtitle{color:#94a3b8;margin-top:8px;font-size:14px}
+main{max-width:1000px;margin:auto;padding:15px}
+#scene{
+ width:100%;height:350px;
+ background:radial-gradient(circle,#243451,#080c18);
+ border:1px solid #334155;border-radius:12px;
+ overflow:hidden;touch-action:pan-y;
+}
+.panel{
+ background:#111827;border:1px solid #334155;
+ border-radius:12px;padding:18px;margin-top:15px;
+}
+h2{font-size:19px;margin-top:0}
+label{display:block;margin:15px 0 6px}
+input[type=range]{width:100%}
+input[type=text]{
+ width:100%;padding:13px;background:#080c18;
+ color:white;border:1px solid #475569;border-radius:8px;
+ font-size:16px;
+}
+button{
+ padding:12px 15px;margin:6px 5px 6px 0;
+ border:0;border-radius:8px;background:#2563eb;
+ color:white;font-size:14px;cursor:pointer;
+}
+button:active{background:#1d4ed8}
+.note{color:#94a3b8;font-size:13px;line-height:1.5}
+#status{color:#67e8f9}
+.grid{display:grid;grid-template-columns:1fr;gap:15px}
+@media(min-width:700px){
+ .grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+
+<body>
+<header>
+<h1>CreatorIQ Development Lab</h1>
+<div class="subtitle">
+CipherGrid • FluidMorph Engine v0.2
+</div>
+</header>
+
+<main>
+<div id="scene"></div>
+
+<div class="grid">
+
+<section class="panel">
+<h2>FluidMorph Controls</h2>
+
+<label>Morph Speed: <span id="speedValue">2.0</span>s</label>
+<input id="speed" type="range"
+ min="0.5" max="6" step="0.5" value="2">
+
+<label>Fluidity: <span id="fluidValue">0.5</span></label>
+<input id="fluid" type="range"
+ min="0" max="1" step="0.1" value="0.5">
+
+<label>Surface Detail: <span id="detailValue">48</span></label>
+<input id="detail" type="range"
+ min="16" max="96" step="16" value="48">
+
+<button id="reset">Reset Sphere</button>
+</section>
+
+<section class="panel">
+<h2>Command Interpreter</h2>
+
+<input id="command" type="text"
+ placeholder="Try: cube, hexagon, sphere, stretch">
+
+<button id="execute">Execute Command</button>
+
+<p id="status">Engine initializing...</p>
+
+<p class="note">
+Experimental interpreter v0.2.
+Supports predefined geometric instructions.
+</p>
+</section>
+
+<section class="panel">
+<h2>Performance Monitor</h2>
+<p>Frame Rate: <strong id="fps">--</strong> FPS</p>
+<p>Vertices: <strong id="vertices">--</strong></p>
+<p>Current Shape: <strong id="shape">Sphere</strong></p>
+</section>
+
+<section class="panel">
+<h2>Experiment Console</h2>
+<p class="note">
+Test geometry transformations and compare results.
+Future versions will support algorithm comparisons.
+</p>
+<button id="experiment">Run Fluid Experiment</button>
+<p id="experimentStatus" class="note">
+No experiment running.
+</p>
+</section>
+
+</div>
+</main>
+
+<script type="module">
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+const container=document.getElementById("scene");
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(
+ 45,container.clientWidth/container.clientHeight,0.1,100
+);
+camera.position.z=5;
+
+const renderer=new THREE.WebGLRenderer({
+ antialias:true,alpha:true
+});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(container.clientWidth,container.clientHeight);
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff,1.5));
+
+const light=new THREE.DirectionalLight(0xffffff,2);
+light.position.set(3,4,5);
+scene.add(light);
+
+const material=new THREE.MeshStandardMaterial({
+ color:0x38bdf8,
+ metalness:0.35,
+ roughness:0.3
+});
+
+let detail=48;
+let geometry=new THREE.SphereGeometry(1.2,detail,detail);
+let mesh=new THREE.Mesh(geometry,material);
+scene.add(mesh);
+
+let currentShape="Sphere";
+let startPositions=null;
+let targetPositions=null;
+let morphStart=0;
+let morphDuration=2000;
+let morphing=false;
+let fluidity=0.5;
+
+const status=document.getElementById("status");
+
+function updateStats(){
+ document.getElementById("vertices").textContent=
+ mesh.geometry.attributes.position.count;
+ document.getElementById("shape").textContent=currentShape;
+}
+
+function createGeometry(type){
+ const d=detail;
+
+ if(type==="cube")
+  return new THREE.BoxGeometry(2,2,2,d/4,d/4,d/4);
+
+ if(type==="hexagon")
+  return new THREE.CylinderGeometry(1.2,1.2,2,6,1);
+
+ return new THREE.SphereGeometry(1.2,d,d);
+}
+
+function transform(type){
+ const target=createGeometry(type);
+
+ // Smoothly shrink the old mesh, then expand the new one.
+ // This is a transitional animation, not vertex morphing.
+ morphing=false;
+
+ const oldGeometry=mesh.geometry;
+ mesh.geometry=target;
+ oldGeometry.dispose();
+
+ mesh.scale.setScalar(0.05);
+ morphStart=performance.now();
+ morphDuration=
+ Number(document.getElementById("speed").value)*1000;
+
+ morphing=true;
+ currentShape=type.charAt(0).toUpperCase()+type.slice(1);
+
+ status.textContent="Transforming into "+currentShape;
+ updateStats();
+}
+
+function executeCommand(){
+ const command=document.getElementById("command")
+ .value.toLowerCase();
+
+ if(command.includes("hexagon"))transform("hexagon");
+ else if(command.includes("cube"))transform("cube");
+ else if(command.includes("sphere")||
+         command.includes("ball"))transform("sphere");
+ else if(command.includes("stretch")){
+  mesh.scale.set(1,1.6,1);
+  morphing=false;
+  status.textContent="Stretch applied.";
+ }
+ else{
+  status.textContent=
+  "Instruction not supported yet.";
+ }
+}
+
+document.getElementById("execute")
+ .addEventListener("click",executeCommand);
+
+document.getElementById("command")
+ .addEventListener("keydown",e=>{
+  if(e.key==="Enter")executeCommand();
+ });
+
+document.getElementById("reset")
+ .addEventListener("click",()=>transform("sphere"));
+
+document.getElementById("speed")
+ .addEventListener("input",e=>{
+  document.getElementById("speedValue").textContent=e.target.value;
+ });
+
+document.getElementById("fluid")
+ .addEventListener("input",e=>{
+  fluidity=Number(e.target.value);
+  document.getElementById("fluidValue").textContent=e.target.value;
+ });
+
+document.getElementById("detail")
+ .addEventListener("input",e=>{
+  detail=Number(e.target.value);
+  document.getElementById("detailValue").textContent=e.target.value;
+  status.textContent="Detail updated for next geometry.";
+ });
+
+document.getElementById("experiment")
+ .addEventListener("click",()=>{
+  transform("sphere");
+  document.getElementById("experimentStatus").textContent=
+  "Fluid experiment running.";
+ });
+
+let frames=0;
+let lastFPS=performance.now();
+
+function animate(time){
+ requestAnimationFrame(animate);
+
+ mesh.rotation.y+=0.005;
+
+ if(morphing){
+  const progress=Math.min(
+   (time-morphStart)/morphDuration,1
+  );
+
+  const smooth=progress*progress*(3-2*progress);
+  const scale=0.05+smooth*0.95;
+
+  mesh.scale.setScalar(scale);
+
+  if(progress>=1){
+   morphing=false;
+   status.textContent=currentShape+" ready.";
+  }
+ }
+
+ renderer.render(scene,camera);
+
+ frames++;
+ if(time-lastFPS>=1000){
+  document.getElementById("fps").textContent=frames;
+  frames=0;
+  lastFPS=time;
+ }
+}
+
+window.addEventListener("resize",()=>{
+ camera.aspect=container.clientWidth/container.clientHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(container.clientWidth,container.clientHeight);
+});
+
+updateStats();
+status.textContent="FluidMorph Lab ready.";
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
