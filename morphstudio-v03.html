@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CreatorIQ v0.3 — FluidMorph Lab</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ background:#080c18;
+ color:#f8fafc;
+ font-family:Arial,sans-serif;
+}
+
+header{
+ padding:22px;
+ background:#111827;
+ text-align:center;
+ border-bottom:1px solid #334155;
+}
+
+h1{margin:0;font-size:25px}
+
+.subtitle{
+ color:#94a3b8;
+ margin-top:8px;
+ font-size:14px;
+}
+
+main{
+ max-width:1000px;
+ margin:auto;
+ padding:15px;
+}
+
+#scene{
+ width:100%;
+ height:370px;
+ background:radial-gradient(circle,#243451,#080c18);
+ border:1px solid #334155;
+ border-radius:12px;
+ overflow:hidden;
+ touch-action:pan-y;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:1fr;
+ gap:15px;
+ margin-top:15px;
+}
+
+@media(min-width:700px){
+ .grid{grid-template-columns:1fr 1fr}
+}
+
+.panel{
+ background:#111827;
+ border:1px solid #334155;
+ border-radius:12px;
+ padding:18px;
+}
+
+h2{
+ font-size:19px;
+ margin-top:0;
+}
+
+label{
+ display:block;
+ margin:15px 0 6px;
+}
+
+input[type=range]{
+ width:100%;
+}
+
+input[type=text]{
+ width:100%;
+ padding:13px;
+ background:#080c18;
+ color:white;
+ border:1px solid #475569;
+ border-radius:8px;
+ font-size:16px;
+}
+
+button{
+ padding:12px 15px;
+ margin:6px 5px 6px 0;
+ border:0;
+ border-radius:8px;
+ background:#2563eb;
+ color:white;
+ font-size:14px;
+ cursor:pointer;
+}
+
+button:active{
+ background:#1d4ed8;
+}
+
+.note{
+ color:#94a3b8;
+ font-size:13px;
+ line-height:1.5;
+}
+
+#status{
+ color:#67e8f9;
+}
+
+#history{
+ padding-left:20px;
+ color:#cbd5e1;
+}
+
+#history li{
+ margin:6px 0;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>CreatorIQ FluidMorph Lab</h1>
+<div class="subtitle">
+CipherGrid • Continuous Geometry Engine v0.3
+</div>
+</header>
+
+<main>
+
+<div id="scene"></div>
+
+<div class="grid">
+
+<section class="panel">
+<h2>FluidMorph Controls</h2>
+
+<label>
+Morph Speed:
+<span id="speedValue">3</span> seconds
+</label>
+
+<input id="speed" type="range"
+min="0.5" max="8" step="0.5" value="3">
+
+<label>
+Fluidity:
+<span id="fluidValue">50</span>%
+</label>
+
+<input id="fluid" type="range"
+min="0" max="100" step="5" value="50">
+
+<label>
+Surface Detail:
+<span id="detailValue">48</span>
+</label>
+
+<input id="detail" type="range"
+min="16" max="96" step="16" value="48">
+
+<button id="reset">Reset Sphere</button>
+</section>
+
+<section class="panel">
+<h2>Command Interpreter</h2>
+
+<input id="command" type="text"
+placeholder="Try: organic, stretch, flatten, sphere">
+
+<button id="execute">Execute Command</button>
+
+<p id="status">Engine initializing...</p>
+
+<p class="note">
+Experimental interpreter supporting procedural
+shape transformations.
+</p>
+</section>
+
+<section class="panel">
+<h2>Shape Memory</h2>
+
+<button id="save">Save Shape</button>
+<button id="previous">Previous Shape</button>
+
+<h3>Shape History</h3>
+
+<ol id="history"></ol>
+
+<p class="note">
+Shapes are stored in temporary browser memory.
+Refreshing the page clears the history.
+</p>
+</section>
+
+<section class="panel">
+<h2>Development Monitor</h2>
+
+<p>Frame Rate: <strong id="fps">--</strong> FPS</p>
+
+<p>Vertices:
+<strong id="vertices">--</strong>
+</p>
+
+<p>Current Shape:
+<strong id="shape">Sphere</strong>
+</p>
+
+<button id="experiment">
+Run Fluid Experiment
+</button>
+
+<p id="experimentStatus" class="note">
+Ready for testing.
+</p>
+</section>
+
+</div>
+</main>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+const container=document.getElementById("scene");
+
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(
+45,
+container.clientWidth/container.clientHeight,
+0.1,
+100
+);
+
+camera.position.z=5;
+
+const renderer=new THREE.WebGLRenderer({
+antialias:true,
+alpha:true
+});
+
+renderer.setPixelRatio(
+Math.min(window.devicePixelRatio,2)
+);
+
+renderer.setSize(
+container.clientWidth,
+container.clientHeight
+);
+
+container.appendChild(renderer.domElement);
+
+scene.add(
+new THREE.AmbientLight(0xffffff,1.5)
+);
+
+const light=new THREE.DirectionalLight(
+0xffffff,2
+);
+
+light.position.set(3,4,5);
+scene.add(light);
+
+const material=new THREE.MeshStandardMaterial({
+color:0x38bdf8,
+metalness:0.4,
+roughness:0.25,
+flatShading:false
+});
+
+let detail=48;
+
+let geometry=new THREE.SphereGeometry(
+1.2,detail,detail
+);
+
+const mesh=new THREE.Mesh(
+geometry,material
+);
+
+scene.add(mesh);
+
+let basePositions=
+geometry.attributes.position.array.slice();
+
+let startPositions=
+basePositions.slice();
+
+let targetPositions=
+basePositions.slice();
+
+let morphing=false;
+let morphStart=0;
+let morphDuration=3000;
+
+let fluidity=0.5;
+let currentShape="Sphere";
+
+const shapeHistory=[];
+
+const status=document.getElementById("status");
+
+function updateStats(){
+
+document.getElementById("vertices").textContent=
+geometry.attributes.position.count;
+
+document.getElementById("shape").textContent=
+currentShape;
+
+}
+
+function createTarget(type){
+
+const target=basePositions.slice();
+
+for(let i=0;i<target.length;i+=3){
+
+const x=basePositions[i];
+const y=basePositions[i+1];
+const z=basePositions[i+2];
+
+if(type==="stretch"){
+target[i]=x*0.8;
+target[i+1]=y*1.6;
+target[i+2]=z*0.8;
+}
+
+else if(type==="flatten"){
+target[i]=x*1.3;
+target[i+1]=y*0.55;
+target[i+2]=z*1.3;
+}
+
+else if(type==="organic"){
+
+const wave=
+1+
+0.2*Math.sin(4*x+2*y)*
+Math.cos(3*z);
+
+target[i]=x*wave;
+target[i+1]=y*wave;
+target[i+2]=z*wave;
+
+}
+
+}
+
+return target;
+
+}
+
+function transform(type){
+
+const position=
+geometry.attributes.position;
+
+startPositions=position.array.slice();
+
+targetPositions=createTarget(type);
+
+morphStart=performance.now();
+
+morphDuration=
+Number(document.getElementById("speed").value)*1000;
+
+morphing=true;
+
+currentShape=
+type.charAt(0).toUpperCase()+type.slice(1);
+
+status.textContent=
+"FluidMorph transforming into "+currentShape;
+
+updateStats();
+
+}
+
+function saveShape(){
+
+const snapshot={
+name:currentShape,
+positions:
+geometry.attributes.position.array.slice()
+};
+
+shapeHistory.push(snapshot);
+
+renderHistory();
+
+status.textContent=
+"Shape saved: "+snapshot.name;
+
+}
+
+function renderHistory(){
+
+const list=document.getElementById("history");
+
+list.innerHTML="";
+
+shapeHistory.forEach((shape,index)=>{
+
+const item=document.createElement("li");
+
+item.textContent=
+(index+1)+". "+shape.name;
+
+list.appendChild(item);
+
+});
+
+}
+
+function previousShape(){
+
+if(shapeHistory.length===0){
+
+status.textContent="No saved shapes.";
+
+return;
+
+}
+
+const snapshot=shapeHistory.pop();
+
+renderHistory();
+
+startPositions=
+geometry.attributes.position.array.slice();
+
+targetPositions=
+snapshot.positions.slice();
+
+morphStart=performance.now();
+
+morphDuration=
+Number(document.getElementById("speed").value)*1000;
+
+morphing=true;
+
+currentShape=snapshot.name;
+
+status.textContent=
+"Returning to saved shape: "+currentShape;
+
+updateStats();
+
+}
+
+function executeCommand(){
+
+const text=
+document.getElementById("command")
+.value.toLowerCase();
+
+if(text.includes("organic")||
+text.includes("blob")){
+transform("organic");
+}
+
+else if(text.includes("stretch")||
+text.includes("tall")){
+transform("stretch");
+}
+
+else if(text.includes("flatten")||
+text.includes("flat")){
+transform("flatten");
+}
+
+else if(text.includes("sphere")||
+text.includes("ball")){
+transform("sphere");
+}
+
+else{
+
+status.textContent=
+"Command not recognized yet.";
+
+}
+
+}
+
+document.getElementById("execute")
+.addEventListener("click",executeCommand);
+
+document.getElementById("command")
+.addEventListener("keydown",e=>{
+
+if(e.key==="Enter"){
+executeCommand();
+}
+
+});
+
+document.getElementById("save")
+.addEventListener("click",saveShape);
+
+document.getElementById("previous")
+.addEventListener("click",previousShape);
+
+document.getElementById("reset")
+.addEventListener("click",()=>{
+transform("sphere");
+});
+
+document.getElementById("speed")
+.addEventListener("input",e=>{
+
+document.getElementById("speedValue")
+.textContent=e.target.value;
+
+});
+
+document.getElementById("fluid")
+.addEventListener("input",e=>{
+
+fluidity=Number(e.target.value)/100;
+
+document.getElementById("fluidValue")
+.textContent=e.target.value;
+
+});
+
+document.getElementById("detail")
+.addEventListener("input",e=>{
+
+detail=Number(e.target.value);
+
+document.getElementById("detailValue")
+.textContent=e.target.value;
+
+status.textContent=
+"Detail selected. Reset to rebuild geometry.";
+
+});
+
+document.getElementById("experiment")
+.addEventListener("click",()=>{
+
+transform("organic");
+
+document.getElementById("experimentStatus")
+.textContent="Continuous deformation experiment running.";
+
+});
+
+let frames=0;
+let lastFPS=performance.now();
+
+function animate(time){
+
+requestAnimationFrame(animate);
+
+mesh.rotation.y+=0.004;
+
+if(morphing){
+
+const progress=Math.min(
+(time-morphStart)/morphDuration,
+1
+);
+
+const smooth=
+progress*progress*(3-2*progress);
+
+const positions=
+geometry.attributes.position.array;
+
+for(let i=0;i<positions.length;i+=3){
+
+const x=
+startPositions[i]+
+(targetPositions[i]-startPositions[i])*smooth;
+
+const y=
+startPositions[i+1]+
+(targetPositions[i+1]-startPositions[i+1])*smooth;
+
+const z=
+startPositions[i+2]+
+(targetPositions[i+2]-startPositions[i+2])*smooth;
+
+const wave=
+Math.sin(time*0.004+i*0.01)*
+fluidity*
+0.06*
+Math.sin(Math.PI*progress);
+
+positions[i]=x+wave;
+positions[i+1]=y+wave;
+positions[i+2]=z+wave;
+
+}
+
+geometry.attributes.position.needsUpdate=true;
+
+geometry.computeVertexNormals();
+
+if(progress>=1){
+
+morphing=false;
+
+status.textContent=
+currentShape+" transformation complete.";
+
+}
+
+}
+
+renderer.render(scene,camera);
+
+frames++;
+
+if(time-lastFPS>=1000){
+
+document.getElementById("fps")
+.textContent=frames;
+
+frames=0;
+lastFPS=time;
+
+}
+
+}
+
+window.addEventListener("resize",()=>{
+
+camera.aspect=
+container.clientWidth/container.clientHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+container.clientWidth,
+container.clientHeight
+);
+
+});
+
+updateStats();
+
+status.textContent="FluidMorph v0.3 ready.";
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>
+
