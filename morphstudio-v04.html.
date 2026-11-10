@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CipherGrid MorphStudio v0.4</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:#080c18;
+color:#f8fafc;
+font-family:Arial,sans-serif;
+}
+
+header{
+padding:22px 14px;
+text-align:center;
+background:#111827;
+border-bottom:1px solid #334155;
+}
+
+h1{margin:0;font-size:26px}
+
+.subtitle,.note{color:#94a3b8}
+
+.subtitle{
+margin-top:8px;
+font-size:14px;
+}
+
+main{
+max-width:1040px;
+margin:auto;
+padding:15px;
+}
+
+#scene{
+height:370px;
+border:1px solid #334155;
+border-radius:12px;
+overflow:hidden;
+background:radial-gradient(circle,#263b58,#080c18);
+touch-action:pan-y;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr;
+gap:15px;
+margin-top:15px;
+}
+
+@media(min-width:720px){
+.grid{grid-template-columns:1fr 1fr}
+}
+
+.panel{
+min-width:0;
+background:#111827;
+border:1px solid #334155;
+border-radius:12px;
+padding:18px;
+}
+
+h2{
+font-size:19px;
+margin:0 0 12px;
+}
+
+label{
+display:block;
+margin:15px 0 6px;
+}
+
+input[type=range]{width:100%}
+
+input[type=text]{
+width:100%;
+padding:13px;
+background:#080c18;
+color:white;
+border:1px solid #475569;
+border-radius:8px;
+font-size:16px;
+}
+
+button{
+min-height:43px;
+padding:11px 14px;
+margin:6px 5px 6px 0;
+border:1px solid #3b82f6;
+border-radius:8px;
+background:#2563eb;
+color:white;
+font-size:14px;
+cursor:pointer;
+}
+
+button:disabled{
+opacity:.4;
+cursor:not-allowed;
+}
+
+.note{
+font-size:13px;
+line-height:1.5;
+}
+
+#status{
+color:#67e8f9;
+min-height:2em;
+}
+
+#timeline{
+list-style:none;
+margin:10px 0 0;
+padding:0;
+display:flex;
+flex-wrap:wrap;
+gap:7px;
+}
+
+#timeline li{margin:0}
+
+#timeline button{
+margin:0;
+background:#1e293b;
+border-color:#475569;
+}
+
+#timeline button[aria-current="step"]{
+background:#155e75;
+border-color:#67e8f9;
+}
+
+.stat{margin:9px 0}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>CipherGrid MorphStudio</h1>
+<div class="subtitle">
+FluidMorph Development Lab • v0.4
+</div>
+</header>
+
+<main>
+
+<div id="scene"></div>
+
+<div class="grid">
+
+<section class="panel">
+
+<h2>FluidMorph Controls</h2>
+
+<label>
+Morph Speed:
+<output id="speedValue">3</output> seconds
+</label>
+
+<input id="speed" type="range"
+min="0.5" max="8" step="0.5" value="3">
+
+<label>
+Fluidity:
+<output id="fluidValue">50</output>%
+</label>
+
+<input id="fluid" type="range"
+min="0" max="100" step="5" value="50">
+
+<label>
+Surface Detail:
+<output id="detailValue">48</output>
+</label>
+
+<input id="detail" type="range"
+min="16" max="96" step="16" value="48">
+
+<p class="note">
+Changing detail rebuilds the actual mesh.
+</p>
+
+<button id="reset">Reset Sphere</button>
+
+</section>
+
+<section class="panel">
+
+<h2>Command Interpreter</h2>
+
+<input id="command" type="text"
+placeholder="organic, stretch, flatten, sphere">
+
+<button id="execute">
+Execute Command
+</button>
+
+<p id="status">Loading engine...</p>
+
+<p class="note">
+Experimental procedural shape interpreter.
+</p>
+
+</section>
+
+<section class="panel">
+
+<h2>Automatic Shape Memory</h2>
+
+<button id="previous">
+← Previous Shape
+</button>
+
+<button id="next">
+Next Shape →
+</button>
+
+<button id="save">
+Save Snapshot
+</button>
+
+<h3>Interactive Shape Timeline</h3>
+
+<ol id="timeline"></ol>
+
+<p class="note">
+Every completed transformation is recorded.
+Tap any shape to restore it.
+Refreshing clears temporary history.
+</p>
+
+</section>
+
+<section class="panel">
+
+<h2>Development Monitor</h2>
+
+<p>Frame Rate:
+<strong id="fps">--</strong> FPS</p>
+
+<p>Vertices:
+<strong id="vertices">--</strong></p>
+
+<p>Current Shape:
+<strong id="shape">Sphere</strong></p>
+
+<p>Timeline Position:
+<strong id="timelinePosition">1 / 1</strong></p>
+
+<button id="experiment">
+Run Fluid Experiment
+</button>
+
+<p id="experimentStatus">
+Ready for testing.
+</p>
+
+</section>
+
+</div>
+</main>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+const $=id=>document.getElementById(id);
+
+const container=$("scene");
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(
+45,1,0.1,100
+);
+
+camera.position.z=5;
+
+const renderer=new THREE.WebGLRenderer({
+antialias:true,
+alpha:true
+});
+
+renderer.setPixelRatio(
+Math.min(window.devicePixelRatio||1,2)
+);
+
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(
+0xffffff,1.5
+));
+
+const light=new THREE.DirectionalLight(
+0xffffff,2
+);
+
+light.position.set(3,4,5);
+scene.add(light);
+
+const material=new THREE.MeshStandardMaterial({
+color:0x38bdf8,
+metalness:0.4,
+roughness:0.25,
+side:THREE.DoubleSide
+});
+
+let detail=48;
+
+let geometry=new THREE.SphereGeometry(
+1.2,detail,detail
+);
+
+const mesh=new THREE.Mesh(
+geometry,material
+);
+
+scene.add(mesh);
+
+let basePositions=
+geometry.attributes.position.array.slice();
+
+let fluidity=0.5;
+let morph=null;
+let displayedName="Sphere";
+
+let history=[];
+let cursor=0;
+
+let frames=0;
+let lastFPS=performance.now();
+
+function geometryFor(type,base){
+
+const out=new Float32Array(base.length);
+
+for(let i=0;i<base.length;i+=3){
+
+const x=base[i];
+const y=base[i+1];
+const z=base[i+2];
+
+let nx=x;
+let ny=y;
+let nz=z;
+
+if(type==="Stretch"){
+nx=x*.8;
+ny=y*1.6;
+nz=z*.8;
+}
+
+else if(type==="Flatten"){
+nx=x*1.3;
+ny=y*.55;
+nz=z*1.3;
+}
+
+else if(type==="Organic"){
+
+const w=1+
+0.2*Math.sin(4*x+2*y)*
+Math.cos(3*z);
+
+nx=x*w;
+ny=y*w;
+nz=z*w;
+
+}
+
+out[i]=nx;
+out[i+1]=ny;
+out[i+2]=nz;
+
+}
+
+return out;
+}
+
+function applyPositions(array){
+
+const attribute=geometry.attributes.position;
+
+attribute.array.set(array);
+attribute.needsUpdate=true;
+
+geometry.computeVertexNormals();
+
+}
+
+function currentPositions(){
+
+return geometry.attributes.position.array.slice();
+
+}
+
+function syncStats(){
+
+$("vertices").textContent=
+geometry.attributes.position.count;
+
+$("shape").textContent=displayedName;
+
+$("timelinePosition").textContent=
+(cursor+1)+" / "+history.length;
+
+$("previous").disabled=cursor<=0;
+
+$("next").disabled=
+cursor>=history.length-1;
+
+}
+
+function renderTimeline(){
+
+const list=$("timeline");
+
+list.replaceChildren();
+
+history.forEach((entry,index)=>{
+
+const li=document.createElement("li");
+
+const button=document.createElement("button");
+
+button.type="button";
+
+button.textContent=
+(index+1)+". "+entry.name;
+
+if(index===cursor){
+button.setAttribute("aria-current","step");
+}
+
+button.addEventListener("click",()=>{
+navigate(index);
+});
+
+li.appendChild(button);
+list.appendChild(li);
+
+});
+
+syncStats();
+
+}
+
+function addHistory(entry){
+
+if(cursor<history.length-1){
+
+history=history.slice(0,cursor+1);
+
+}
+
+history.push(entry);
+
+cursor=history.length-1;
+
+renderTimeline();
+
+}
+
+function snapshot(name=displayedName){
+
+return {
+name,
+detail,
+positions:currentPositions(),
+type:null
+};
+
+}
+
+function finishMorph(){
+
+if(!morph)return;
+
+applyPositions(morph.target);
+
+displayedName=morph.name;
+
+const completed=morph;
+
+morph=null;
+
+if(completed.kind==="new"){
+
+addHistory({
+name:completed.name,
+detail,
+positions:completed.target.slice(),
+type:completed.type
+});
+
+}
+
+else if(completed.kind==="navigate"){
+
+cursor=completed.index;
+renderTimeline();
+
+}
+
+$("status").textContent=
+displayedName+" transformation complete.";
+
+syncStats();
+
+}
+
+function startMorph(
+target,name,kind,type=null,index=null
+){
+
+if(morph)finishMorph();
+
+morph={
+start:currentPositions(),
+target:target.slice(),
+name,
+kind,
+type,
+index,
+started:performance.now(),
+duration:Number($("speed").value)*1000
+};
+
+$("status").textContent=
+"Flowing into "+name+"...";
+
+}
+
+function transform(type){
+
+const name=
+type.charAt(0).toUpperCase()+
+type.slice(1);
+
+startMorph(
+geometryFor(name,basePositions),
+name,
+"new",
+name
+);
+
+}
+
+function navigate(index){
+
+if(index<0||index>=history.length)return;
+
+if(morph)finishMorph();
+
+if(index===cursor)return;
+
+const entry=history[index];
+
+if(entry.detail!==detail){
+
+rebuild(entry.detail,false);
+
+$("detail").value=String(detail);
+
+$("detailValue").textContent=detail;
+
+}
+
+startMorph(
+entry.positions,
+entry.name,
+"navigate",
+entry.type,
+index
+);
+
+}
+
+function rebuild(newDetail,record=true){
+
+if(morph)finishMorph();
+
+const previous=history[cursor];
+
+const old=geometry;
+
+detail=newDetail;
+
+geometry=new THREE.SphereGeometry(
+1.2,detail,detail
+);
+
+mesh.geometry=geometry;
+
+old.dispose();
+
+basePositions=
+geometry.attributes.position.array.slice();
+
+const type=
+previous?.type||displayedName;
+
+applyPositions(
+geometryFor(type,basePositions)
+);
+
+displayedName=
+previous?.name||displayedName;
+
+if(record){
+
+addHistory({
+name:displayedName+" ("+detail+" detail)",
+detail,
+positions:currentPositions(),
+type
+});
+
+$("status").textContent=
+"Surface rebuilt at "+detail+" detail.";
+
+}
+
+else syncStats();
+
+}
+
+function execute(){
+
+const text=
+$("command").value.trim().toLowerCase();
+
+if(!text){
+
+$("status").textContent=
+"Enter a shape command first.";
+
+return;
+
+}
+
+if(/\b(organic|blob)\b/.test(text)){
+transform("organic");
+}
+
+else if(/\b(stretch|tall)\b/.test(text)){
+transform("stretch");
+}
+
+else if(/\b(flatten|flat)\b/.test(text)){
+transform("flatten");
+}
+
+else if(/\b(sphere|ball)\b/.test(text)){
+transform("sphere");
+}
+
+else{
+
+$("status").textContent=
+"Try organic, stretch, flatten, or sphere.";
+
+}
+
+}
+
+$("execute").addEventListener(
+"click",execute
+);
+
+$("command").addEventListener(
+"keydown",e=>{
+
+if(e.key==="Enter")execute();
+
+});
+
+$("reset").addEventListener(
+"click",()=>transform("sphere")
+);
+
+$("experiment").addEventListener(
+"click",()=>{
+
+transform("organic");
+
+$("experimentStatus").textContent=
+"Organic deformation experiment running.";
+
+});
+
+$("save").addEventListener(
+"click",()=>{
+
+if(morph)finishMorph();
+
+const entry=snapshot(
+displayedName+" snapshot"
+);
+
+addHistory(entry);
+
+$("status").textContent=
+"Snapshot saved.";
+
+});
+
+$("previous").addEventListener(
+"click",()=>navigate(cursor-1)
+);
+
+$("next").addEventListener(
+"click",()=>navigate(cursor+1)
+);
+
+$("speed").addEventListener(
+"input",e=>{
+
+$("speedValue").textContent=e.target.value;
+
+});
+
+$("fluid").addEventListener(
+"input",e=>{
+
+fluidity=Number(e.target.value)/100;
+
+$("fluidValue").textContent=e.target.value;
+
+});
+
+$("detail").addEventListener(
+"change",e=>{
+
+const value=Number(e.target.value);
+
+if(value!==detail)rebuild(value);
+
+});
+
+$("detail").addEventListener(
+"input",e=>{
+
+$("detailValue").textContent=e.target.value;
+
+});
+
+function resize(){
+
+const w=container.clientWidth;
+const h=container.clientHeight;
+
+camera.aspect=w/h;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(w,h);
+
+}
+
+window.addEventListener("resize",resize);
+
+resize();
+
+function animate(time){
+
+requestAnimationFrame(animate);
+
+mesh.rotation.y+=0.004;
+
+if(morph){
+
+const p=Math.max(
+0,
+Math.min(
+1,
+(time-morph.started)/morph.duration
+)
+);
+
+const ease=p*p*(3-2*p);
+
+const positions=
+geometry.attributes.position.array;
+
+for(let i=0;i<positions.length;i+=3){
+
+const x=
+morph.start[i]+
+(morph.target[i]-morph.start[i])*ease;
+
+const y=
+morph.start[i+1]+
+(morph.target[i+1]-morph.start[i+1])*ease;
+
+const z=
+morph.start[i+2]+
+(morph.target[i+2]-morph.start[i+2])*ease;
+
+const phase=
+Math.sin(time*.004+i*.01);
+
+const wave=
+phase*fluidity*.06*Math.sin(Math.PI*p);
+
+positions[i]=x+wave;
+positions[i+1]=y+wave;
+positions[i+2]=z+wave;
+
+}
+
+geometry.attributes.position.needsUpdate=true;
+
+geometry.computeVertexNormals();
+
+if(p>=1)finishMorph();
+
+}
+
+renderer.render(scene,camera);
+
+frames++;
+
+if(time-lastFPS>=1000){
+
+$("fps").textContent=frames;
+
+frames=0;
+
+lastFPS=time;
+
+}
+
+}
+
+history=[{
+name:"Sphere",
+detail,
+positions:currentPositions(),
+type:"Sphere"
+}];
+
+renderTimeline();
+
+$("status").textContent=
+"MorphStudio v0.4 ready.";
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>
