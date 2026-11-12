@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CipherGrid MorphStudio v0.5</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+background:#080c18;
+color:#f8fafc;
+font-family:Arial,sans-serif;
+}
+header{
+background:#111827;
+padding:22px;
+text-align:center;
+border-bottom:1px solid #334155;
+}
+h1{margin:0;font-size:26px}
+.subtitle{color:#94a3b8;margin-top:8px}
+main{max-width:1100px;margin:auto;padding:15px}
+#scene{
+height:380px;
+border:1px solid #334155;
+border-radius:12px;
+background:radial-gradient(circle,#263b58,#080c18);
+overflow:hidden;
+}
+.grid{
+display:grid;
+grid-template-columns:1fr;
+gap:15px;
+margin-top:15px;
+}
+@media(min-width:720px){
+.grid{grid-template-columns:1fr 1fr}
+}
+.panel{
+background:#111827;
+border:1px solid #334155;
+border-radius:12px;
+padding:18px;
+}
+h2{font-size:19px;margin-top:0}
+label{display:block;margin-top:15px}
+input[type=range]{width:100%}
+button{
+background:#2563eb;
+color:white;
+border:1px solid #3b82f6;
+padding:12px;
+border-radius:8px;
+margin:5px 4px 5px 0;
+font-size:14px;
+}
+button:disabled{opacity:.4}
+#status{color:#67e8f9}
+.note{color:#94a3b8;font-size:13px}
+#timeline{
+display:flex;
+flex-wrap:wrap;
+gap:7px;
+padding:0;
+list-style:none;
+}
+#timeline button{background:#1e293b}
+#timeline button.active{
+background:#155e75;
+border-color:#67e8f9;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>CipherGrid MorphStudio</h1>
+<div class="subtitle">
+Implicit Geometry Lab • v0.5
+</div>
+</header>
+
+<main>
+
+<div id="scene"></div>
+
+<div class="grid">
+
+<section class="panel">
+<h2>Implicit Geometry Engine</h2>
+
+<button onclick="window.makeShape('sphere')">
+Generate Sphere
+</button>
+
+<button onclick="window.makeShape('torus')">
+Generate Torus
+</button>
+
+<button onclick="window.makeShape('union')">
+Merge Spheres
+</button>
+
+<button onclick="window.makeShape('subtract')">
+Subtract Sphere
+</button>
+
+<p class="note">
+Geometry generated from signed distance fields.
+</p>
+</section>
+
+<section class="panel">
+<h2>FluidMorph Controls</h2>
+
+<label>
+Morph Speed:
+<span id="speedValue">3</span> seconds
+</label>
+<input id="speed" type="range"
+min="0.5" max="8" step="0.5" value="3">
+
+<label>
+Fluidity:
+<span id="fluidValue">50</span>%
+</label>
+<input id="fluid" type="range"
+min="0" max="100" step="5" value="50">
+
+<label>
+Surface Detail:
+<span id="detailValue">24</span>
+</label>
+<input id="detail" type="range"
+min="12" max="40" step="4" value="24">
+
+</section>
+
+<section class="panel">
+<h2>Shape Memory</h2>
+
+<button id="previous">Previous Shape</button>
+<button id="next">Next Shape</button>
+
+<h3>Shape Timeline</h3>
+<ul id="timeline"></ul>
+
+<p class="note">
+Generated shapes are stored temporarily.
+</p>
+</section>
+
+<section class="panel">
+<h2>Development Monitor</h2>
+
+<p>Frame Rate:
+<strong id="fps">--</strong></p>
+
+<p>Vertices:
+<strong id="vertices">--</strong></p>
+
+<p>Triangles:
+<strong id="triangles">--</strong></p>
+
+<p>Current Shape:
+<strong id="shape">Sphere</strong></p>
+
+<p id="status">Initializing engine...</p>
+
+</section>
+
+</div>
+</main>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+const $=id=>document.getElementById(id);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(
+45,1,0.1,100
+);
+
+camera.position.z=5;
+
+const renderer=new THREE.WebGLRenderer({
+antialias:true,
+alpha:true
+});
+
+renderer.setPixelRatio(
+Math.min(devicePixelRatio,2)
+);
+
+const container=$("scene");
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(
+0xffffff,1.5
+));
+
+const light=new THREE.DirectionalLight(
+0xffffff,2
+);
+light.position.set(3,4,5);
+scene.add(light);
+
+const material=new THREE.MeshStandardMaterial({
+color:0x38bdf8,
+metalness:.35,
+roughness:.3,
+side:THREE.DoubleSide
+});
+
+let mesh=new THREE.Mesh(
+new THREE.BufferGeometry(),
+material
+);
+
+scene.add(mesh);
+
+let resolution=24;
+let fluidity=.5;
+let speed=3;
+
+let history=[];
+let cursor=-1;
+
+let currentName="Sphere";
+let morph=null;
+
+function sdfSphere(x,y,z,r=1){
+return Math.sqrt(x*x+y*y+z*z)-r;
+}
+
+function sdfTorus(x,y,z){
+const q=Math.sqrt(x*x+z*z)-.8;
+return Math.sqrt(q*q+y*y)-.3;
+}
+
+function sdfUnion(x,y,z){
+const a=sdfSphere(x-.55,y,z,.75);
+const b=sdfSphere(x+.55,y,z,.75);
+return Math.min(a,b);
+}
+
+function sdfSubtract(x,y,z){
+const outer=sdfSphere(x,y,z,1);
+const inner=sdfSphere(x-.45,y,z,.65);
+return Math.max(outer,-inner);
+}
+
+function field(type,x,y,z){
+
+if(type==="torus")return sdfTorus(x,y,z);
+if(type==="union")return sdfUnion(x,y,z);
+if(type==="subtract")return sdfSubtract(x,y,z);
+
+return sdfSphere(x,y,z,1);
+
+}
+
+/*
+Surface reconstruction:
+Each grid cube is divided into six tetrahedra.
+Triangles are created where the signed field
+crosses zero. This is marching tetrahedra,
+a simpler alternative to marching cubes.
+*/
+
+function buildGeometry(type){
+
+const n=resolution;
+const size=3;
+const step=size/n;
+const half=size/2;
+
+const positions=[];
+
+const tetra=[
+[0,5,1,6],
+[0,1,2,6],
+[0,2,3,6],
+[0,3,7,6],
+[0,7,4,6],
+[0,4,5,6]
+];
+
+const corners=[
+[0,0,0],[1,0,0],[1,1,0],[0,1,0],
+[0,0,1],[1,0,1],[1,1,1],[0,1,1]
+];
+
+function interpolate(a,b,va,vb){
+
+const denom=va-vb;
+const t=Math.abs(denom)<1e-10
+?.5:va/denom;
+
+return [
+a[0]+t*(b[0]-a[0]),
+a[1]+t*(b[1]-a[1]),
+a[2]+t*(b[2]-a[2])
+];
+
+}
+
+function addTriangle(a,b,c){
+positions.push(...a,...b,...c);
+}
+
+function polygonize(points,values){
+
+const inside=[];
+const outside=[];
+
+for(let i=0;i<4;i++){
+if(values[i]<0)inside.push(i);
+else outside.push(i);
+}
+
+if(inside.length===0||inside.length===4)return;
+
+if(inside.length===1||inside.length===3){
+
+const invert=inside.length===3;
+const a=invert?outside[0]:inside[0];
+const others=invert?inside:outside;
+
+const p=others.map(i=>
+interpolate(points[a],points[i],values[a],values[i])
+);
+
+if(invert)addTriangle(p[0],p[2],p[1]);
+else addTriangle(p[0],p[1],p[2]);
+
+}else{
+
+const a=inside[0],b=inside[1];
+const c=outside[0],d=outside[1];
+
+const p0=interpolate(points[a],points[c],values[a],values[c]);
+const p1=interpolate(points[a],points[d],values[a],values[d]);
+const p2=interpolate(points[b],points[c],values[b],values[c]);
+const p3=interpolate(points[b],points[d],values[b],values[d]);
+
+addTriangle(p0,p1,p2);
+addTriangle(p1,p3,p2);
+
+}
+
+}
+
+for(let i=0;i<n;i++){
+for(let j=0;j<n;j++){
+for(let k=0;k<n;k++){
+
+const p=corners.map(c=>[
+half*-1+(i+c[0])*step,
+half*-1+(j+c[1])*step,
+half*-1+(k+c[2])*step
+]);
+
+const v=p.map(q=>field(type,...q));
+
+for(const t of tetra){
+
+polygonize(
+t.map(id=>p[id]),
+t.map(id=>v[id])
+);
+
+}
+
+}
+}
+}
+
+const geo=new THREE.BufferGeometry();
+
+geo.setAttribute(
+"position",
+new THREE.Float32BufferAttribute(positions,3)
+);
+
+geo.computeVertexNormals();
+
+return geo;
+
+}
+
+function updateStats(){
+
+const g=mesh.geometry;
+const count=g.attributes.position?.count||0;
+
+$("vertices").textContent=count;
+$("triangles").textContent=count/3;
+$("shape").textContent=currentName;
+
+$("previous").disabled=cursor<=0;
+$("next").disabled=cursor>=history.length-1;
+
+}
+
+function updateTimeline(){
+
+const list=$("timeline");
+list.replaceChildren();
+
+history.forEach((item,index)=>{
+
+const li=document.createElement("li");
+const btn=document.createElement("button");
+
+btn.textContent=(index+1)+". "+item.name;
+
+if(index===cursor)btn.classList.add("active");
+
+btn.onclick=()=>restore(index);
+
+li.appendChild(btn);
+list.appendChild(li);
+
+});
+
+updateStats();
+
+}
+
+function replaceGeometry(geo){
+
+const old=mesh.geometry;
+mesh.geometry=geo;
+old.dispose();
+
+updateStats();
+
+}
+
+function beginMorph(type,name,record=true,index=null){
+
+if(morph)finishMorph();
+
+const target=buildGeometry(type);
+
+const oldPositions=
+mesh.geometry.attributes.position?.array;
+
+const newPositions=
+target.attributes.position.array;
+
+if(!oldPositions||oldPositions.length!==newPositions.length){
+
+replaceGeometry(target);
+currentName=name;
+
+if(record)saveHistory(type,name);
+else{
+cursor=index;
+updateTimeline();
+}
+
+$("status").textContent=
+name+" generated. Topology rebuilt.";
+
+return;
+
+}
+
+const start=new Float32Array(oldPositions);
+
+morph={
+start,
+target,
+name,
+type,
+record,
+index,
+started:performance.now(),
+duration:speed*1000
+};
+
+$("status").textContent=
+"Transforming into "+name+"...";
+
+}
+
+function finishMorph(){
+
+if(!morph)return;
+
+const m=morph;
+morph=null;
+
+replaceGeometry(m.target);
+currentName=m.name;
+
+if(m.record)saveHistory(m.type,m.name);
+else{
+cursor=m.index;
+updateTimeline();
+}
+
+$("status").textContent=
+currentName+" transformation complete.";
+
+}
+
+function saveHistory(type,name){
+
+if(cursor<history.length-1){
+history=history.slice(0,cursor+1);
+}
+
+history.push({type,name,resolution});
+
+cursor=history.length-1;
+
+updateTimeline();
+
+}
+
+function restore(index){
+
+if(index<0||index>=history.length)return;
+
+const item=history[index];
+
+resolution=item.resolution;
+
+$("detail").value=resolution;
+$("detailValue").textContent=resolution;
+
+beginMorph(item.type,item.name,false,index);
+
+}
+
+window.makeShape=function(type){
+
+const names={
+sphere:"Sphere",
+torus:"Torus",
+union:"Merged Spheres",
+subtract:"Subtracted Sphere"
+};
+
+beginMorph(type,names[type],true);
+
+};
+
+$("previous").onclick=()=>restore(cursor-1);
+$("next").onclick=()=>restore(cursor+1);
+
+$("speed").oninput=e=>{
+speed=Number(e.target.value);
+$("speedValue").textContent=speed;
+};
+
+$("fluid").oninput=e=>{
+fluidity=Number(e.target.value)/100;
+$("fluidValue").textContent=e.target.value;
+};
+
+$("detail").oninput=e=>{
+$("detailValue").textContent=e.target.value;
+};
+
+$("detail").onchange=e=>{
+resolution=Number(e.target.value);
+
+if(morph)finishMorph();
+
+beginMorph(
+history[cursor].type,
+history[cursor].name,
+true
+);
+};
+
+function resize(){
+
+const w=container.clientWidth;
+const h=container.clientHeight;
+
+camera.aspect=w/h;
+camera.updateProjectionMatrix();
+
+renderer.setSize(w,h);
+
+}
+
+window.addEventListener("resize",resize);
+resize();
+
+let frames=0;
+let last=performance.now();
+
+function animate(time){
+
+requestAnimationFrame(animate);
+
+mesh.rotation.y+=.004;
+
+if(morph){
+
+const m=morph;
+
+const t=Math.min(
+1,(time-m.started)/m.duration
+);
+
+const ease=t*t*(3-2*t);
+
+const arr=mesh.geometry.attributes.position.array;
+
+for(let i=0;i<arr.length;i++){
+
+const base=
+m.start[i]+
+(m.target.attributes.position.array[i]-m.start[i])*ease;
+
+const wave=
+Math.sin(time*.004+i*.02)*
+fluidity*.025*Math.sin(Math.PI*t);
+
+arr[i]=base+wave;
+
+}
+
+mesh.geometry.attributes.position.needsUpdate=true;
+mesh.geometry.computeVertexNormals();
+
+if(t>=1)finishMorph();
+
+}
+
+renderer.render(scene,camera);
+
+frames++;
+
+if(time-last>1000){
+
+$("fps").textContent=frames;
+frames=0;
+last=time;
+
+}
+
+}
+
+const initial=buildGeometry("sphere");
+
+replaceGeometry(initial);
+
+saveHistory("sphere","Sphere");
+
+$("status").textContent=
+"Implicit Geometry Engine ready.";
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>
