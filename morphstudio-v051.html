@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CipherGrid MorphStudio v0.5.1</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ background:#080c18;
+ color:#f1f5f9;
+ font-family:Arial,sans-serif;
+ line-height:1.5;
+}
+header{
+ padding:22px 14px;
+ text-align:center;
+ background:#111827;
+ border-bottom:1px solid #334155;
+}
+h1{margin:0;font-size:25px}
+.subtitle{color:#67e8f9;margin-top:6px}
+main{max-width:1100px;margin:auto;padding:14px}
+#scene{
+ height:370px;
+ border:1px solid #334155;
+ border-radius:12px;
+ background:radial-gradient(circle,#23334c,#080c18);
+ overflow:hidden;
+ touch-action:none;
+}
+.grid{
+ display:grid;
+ grid-template-columns:1fr;
+ gap:14px;
+ margin-top:14px;
+}
+@media(min-width:750px){
+ .grid{grid-template-columns:1fr 1fr}
+}
+.panel{
+ background:#111827;
+ border:1px solid #334155;
+ border-radius:12px;
+ padding:17px;
+ min-width:0;
+}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 8px}
+label{display:block;margin-top:12px}
+input,textarea,select{
+ font:inherit;
+}
+input[type=text],
+input[type=number],
+textarea,select{
+ width:100%;
+ padding:11px;
+ margin-top:5px;
+ background:#0f172a;
+ color:#fff;
+ border:1px solid #475569;
+ border-radius:8px;
+ font-size:16px;
+}
+textarea{min-height:85px;resize:vertical}
+input[type=range]{width:100%}
+button{
+ background:#2563eb;
+ color:white;
+ border:1px solid #3b82f6;
+ border-radius:8px;
+ padding:11px 13px;
+ margin:5px 4px 5px 0;
+ font-size:14px;
+ min-height:43px;
+ cursor:pointer;
+}
+button.secondary{background:#334155}
+button:disabled{opacity:.4}
+.row{display:flex;flex-wrap:wrap;gap:4px}
+.note{font-size:13px;color:#94a3b8}
+.good{color:#86efac}
+.warning{color:#fbbf24}
+#status{color:#67e8f9;white-space:pre-wrap}
+#timeline{
+ list-style:none;
+ padding:0;
+ display:flex;
+ flex-wrap:wrap;
+ gap:5px;
+}
+#timeline button{background:#1e293b}
+#timeline button.active{
+ background:#155e75;
+ border-color:#67e8f9;
+}
+pre{
+ background:#080c18;
+ padding:12px;
+ border-radius:8px;
+ overflow-wrap:anywhere;
+ white-space:pre-wrap;
+ font-size:12px;
+ max-height:260px;
+ overflow:auto;
+}
+.metric{
+ display:flex;
+ justify-content:space-between;
+ border-bottom:1px solid #273449;
+ padding:6px 0;
+ gap:10px;
+}
+.metric strong{text-align:right}
+code{color:#93c5fd}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>CipherGrid MorphStudio</h1>
+<div class="subtitle">
+Mathematical Knowledge + FluidMorph Engines • v0.5.1
+</div>
+</header>
+
+<main>
+
+<div id="scene"></div>
+
+<p class="note">
+Drag with one finger to rotate. Pinch with two fingers
+to zoom. Geometry is reconstructed from mathematical fields.
+</p>
+
+<div class="grid">
+
+<section class="panel">
+<h2>1. Mathematical Knowledge Engine</h2>
+
+<label for="formulaSelect">Mathematical Formula Library</label>
+<select id="formulaSelect"></select>
+
+<p id="formulaDescription" class="note"></p>
+
+<label for="equation">Implicit Equation — F(x,y,z) = 0</label>
+<input id="equation" type="text"
+ value="sqrt(x^2+y^2+z^2)-1">
+
+<p class="note">
+Enter the left-hand expression only.
+Supported: +, -, *, /, ^, parentheses,
+sqrt, sin, cos, tan, abs, exp, log, min, max,
+x, y, z, pi, e.
+</p>
+
+<label for="command">Geometry Command</label>
+<input id="command" type="text"
+ placeholder="Example: torus">
+
+<div class="row">
+<button id="generateEquation">Generate Equation</button>
+<button id="runCommand">Run Command</button>
+</div>
+
+<p id="formulaStatus" class="note"></p>
+
+<h3>Quick Geometry</h3>
+<div class="row">
+<button data-shape="sphere">Sphere</button>
+<button data-shape="torus">Torus</button>
+<button data-shape="ellipsoid">Ellipsoid</button>
+<button data-shape="union">Merge Spheres</button>
+<button data-shape="subtract">Subtract Sphere</button>
+<button data-shape="gyroid">Gyroid</button>
+</div>
+
+</section>
+
+<section class="panel">
+<h2>2. FluidMorph Engine</h2>
+
+<label>
+Morph Speed:
+<span id="speedValue">3</span> seconds
+</label>
+<input id="speed" type="range"
+ min="0.5" max="8" step="0.5" value="3">
+
+<label>
+Fluidity:
+<span id="fluidValue">50</span>%
+</label>
+<input id="fluid" type="range"
+ min="0" max="100" step="5" value="50">
+
+<label>
+Surface Detail:
+<span id="detailValue">24</span>
+</label>
+<input id="detail" type="range"
+ min="12" max="32" step="4" value="24">
+
+<div class="row">
+<button id="rotationToggle" class="secondary">
+Auto Rotation: ON
+</button>
+<button id="resetView" class="secondary">
+Reset View
+</button>
+</div>
+
+<p class="note">
+Morphing blends mathematical fields and reconstructs
+the resulting surface. This is experimental field
+interpolation, not a physical fluid simulation.
+</p>
+
+<h3>Shape Memory</h3>
+<div class="row">
+<button id="previous">Previous Shape</button>
+<button id="next">Next Shape</button>
+</div>
+
+<ul id="timeline"></ul>
+
+</section>
+
+<section class="panel">
+<h2>3. Mathematical Identity Record</h2>
+
+<div class="metric">
+<span>Record ID</span>
+<strong id="recordId">—</strong>
+</div>
+
+<div class="metric">
+<span>Formula Classification</span>
+<strong id="classification">—</strong>
+</div>
+
+<div class="metric">
+<span>Validation Status</span>
+<strong id="validation">—</strong>
+</div>
+
+<div class="metric">
+<span>Geometry</span>
+<strong id="recordGeometry">—</strong>
+</div>
+
+<h3>Research Notes</h3>
+<textarea id="notes"
+ placeholder="Record observations, questions, and findings..."></textarea>
+
+<div class="row">
+<button id="saveNotes">Save Notes</button>
+<button id="exportRecord">Export Record</button>
+<button id="importRecord" class="secondary">Import Record</button>
+</div>
+
+<input type="file" id="importFile"
+ accept=".json,application/json" hidden>
+
+<h3>Record Details</h3>
+<pre id="recordDetails"></pre>
+
+<p class="note">
+Records can be exported as JSON and imported later.
+The timeline is temporary until exported.
+</p>
+
+</section>
+
+<section class="panel">
+<h2>4. Development Monitor</h2>
+
+<div class="metric">
+<span>Frame Rate</span>
+<strong id="fps">—</strong>
+</div>
+
+<div class="metric">
+<span>Vertices</span>
+<strong id="vertices">—</strong>
+</div>
+
+<div class="metric">
+<span>Triangles</span>
+<strong id="triangles">—</strong>
+</div>
+
+<div class="metric">
+<span>Current Shape</span>
+<strong id="shape">—</strong>
+</div>
+
+<div class="metric">
+<span>Mesh Resolution</span>
+<strong id="resolution">24</strong>
+</div>
+
+<div class="metric">
+<span>Timeline Position</span>
+<strong id="timelinePosition">—</strong>
+</div>
+
+<h3>Engine Status</h3>
+<p id="status">Initializing...</p>
+
+<p class="note">
+Mesh vertices shown here include duplicated vertices
+used for triangle reconstruction.
+</p>
+
+</section>
+
+</div>
+
+</main>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+const $=id=>document.getElementById(id);
+
+/* ==========================================
+   CIPHERGRID MATHEMATICAL KNOWLEDGE ENGINE
+   ========================================== */
+
+const FORMULAS={
+ sphere:{
+  name:"Sphere",
+  expression:"sqrt(x^2+y^2+z^2)-1",
+  classification:"Signed Distance Field",
+  validation:"Established mathematics",
+  description:"Unit sphere centered at the origin.",
+  properties:["Closed surface","Genus 0"]
+ },
+ torus:{
+  name:"Torus",
+  expression:"sqrt((sqrt(x^2+z^2)-0.8)^2+y^2)-0.3",
+  classification:"Signed Distance Field",
+  validation:"Established mathematics",
+  description:"Torus with major radius 0.8 and tube radius 0.3.",
+  properties:["Closed surface","Genus 1"]
+ },
+ ellipsoid:{
+  name:"Ellipsoid",
+  expression:"(x/1.1)^2+(y/0.7)^2+(z/0.85)^2-1",
+  classification:"Implicit Surface",
+  validation:"Established mathematics",
+  description:"Ellipsoid defined by three semi-axes.",
+  properties:["Closed surface","Genus 0"]
+ },
+ union:{
+  name:"Merged Spheres",
+  expression:"min(sqrt((x-0.55)^2+y^2+z^2)-0.75,sqrt((x+0.55)^2+y^2+z^2)-0.75)",
+  classification:"Constructive Solid Geometry",
+  validation:"Established mathematics",
+  description:"Union of two overlapping spherical fields.",
+  properties:["Boolean union","Connected surface"]
+ },
+ subtract:{
+  name:"Subtracted Sphere",
+  expression:"max(sqrt(x^2+y^2+z^2)-1,-(sqrt((x-0.45)^2+y^2+z^2)-0.65))",
+  classification:"Constructive Solid Geometry",
+  validation:"Established mathematics",
+  description:"Difference between two spherical fields.",
+  properties:["Boolean subtraction","Recessed surface"]
+ },
+ gyroid:{
+  name:"Gyroid",
+  expression:"sin(4*x)*cos(4*y)+sin(4*y)*cos(4*z)+sin(4*z)*cos(4*x)",
+  classification:"Periodic Implicit Surface",
+  validation:"Established mathematics",
+  description:"Periodic implicit surface, clipped to the sampling domain.",
+  properties:["Periodic surface","Open boundary in finite sample"]
+ }
+};
+
+const library=$("formulaSelect");
+
+for(const [key,item] of Object.entries(FORMULAS)){
+ const option=document.createElement("option");
+ option.value=key;
+ option.textContent=item.name;
+ library.appendChild(option);
+}
+
+/* ==========================================
+   SAFE MATHEMATICAL EXPRESSION PARSER
+   No eval() or Function() execution.
+   ========================================== */
+
+function compileExpression(source){
+
+ const tokens=source.match(
+  /\s*(?:\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[a-zA-Z_]+|[+\-*/^(),])/g
+ )||[];
+
+ if(tokens.join("").replace(/\s/g,"")!==
+    source.replace(/\s/g,"")){
+  throw Error("Unsupported character in equation.");
+ }
+
+ const t=tokens.map(s=>s.trim());
+ let pos=0;
+
+ const peek=()=>t[pos];
+ const take=()=>t[pos++];
+
+ function expect(symbol){
+  if(take()!==symbol)
+   throw Error("Expected "+symbol);
+ }
+
+ function primary(){
+
+  const token=take();
+
+  if(token===undefined)
+   throw Error("Incomplete equation.");
+
+  if(token==="("){
+   const node=expression();
+   expect(")");
+   return node;
+  }
+
+  if(/^(?:\d|\.)/.test(token)){
+   const value=Number(token);
+   if(!Number.isFinite(value))
+    throw Error("Invalid number.");
+   return ()=>value;
+  }
+
+  if(/^[a-zA-Z_]+$/.test(token)){
+
+   const name=token.toLowerCase();
+
+   if(peek()==="("){
+
+    take();
+
+    const args=[];
+
+    if(peek()!==")"){
+     args.push(expression());
+     while(peek()===","){
+      take();
+      args.push(expression());
+     }
+    }
+
+    expect(")");
+
+    const functions={
+     sqrt:Math.sqrt,
+     sin:Math.sin,
+     cos:Math.cos,
+     tan:Math.tan,
+     abs:Math.abs,
+     exp:Math.exp,
+     log:Math.log,
+     min:Math.min,
+     max:Math.max
+    };
+
+    if(!functions[name])
+     throw Error("Unknown function: "+name);
+
+    if(
+     (name==="min"||name==="max")
+      ?args.length<2
+      :args.length!==1
+    ){
+     throw Error("Incorrect arguments for "+name);
+    }
+
+    return (x,y,z)=>
+     functions[name](...args.map(f=>f(x,y,z)));
+
+   }
+
+   if(name==="x")return (x)=>x;
+   if(name==="y")return (x,y)=>y;
+   if(name==="z")return (x,y,z)=>z;
+   if(name==="pi")return ()=>Math.PI;
+   if(name==="e")return ()=>Math.E;
+
+   throw Error("Unknown variable: "+name);
+
+  }
+
+  throw Error("Unexpected token: "+token);
+
+ }
+
+ function power(){
+  let a=primary();
+  if(peek()==="^"){
+   take();
+   const b=unary();
+   const old=a;
+   a=(x,y,z)=>Math.pow(
+    old(x,y,z),b(x,y,z)
+   );
+  }
+  return a;
+ }
+
+ function unary(){
+  if(peek()==="+"){
+   take();
+   return unary();
+  }
+  if(peek()==="-"){
+   take();
+   const a=unary();
+   return (x,y,z)=>-a(x,y,z);
+  }
+  return power();
+ }
+
+ function term(){
+  let a=unary();
+
+  while(peek()==="*"||peek()==="/"){
+   const op=take();
+   const b=unary();
+   const old=a;
+
+   a=op==="*"
+    ?(x,y,z)=>old(x,y,z)*b(x,y,z)
+    :(x,y,z)=>old(x,y,z)/b(x,y,z);
+  }
+
+  return a;
+ }
+
+ function expression(){
+  let a=term();
+
+  while(peek()==="+"||peek()==="-"){
+   const op=take();
+   const b=term();
+   const old=a;
+
+   a=op==="+"
+    ?(x,y,z)=>old(x,y,z)+b(x,y,z)
+    :(x,y,z)=>old(x,y,z)-b(x,y,z);
+  }
+
+  return a;
+ }
+
+ const result=expression();
+
+ if(pos!==t.length)
+  throw Error("Unexpected token: "+peek());
+
+ return result;
+
+}
+
+/* ==========================================
+   FLUIDMORPH ENGINE
+   ========================================== */
+
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(
+ 45,1,0.1,100
+);
+
+camera.position.set(0,0,5);
+
+const renderer=new THREE.WebGLRenderer({
+ antialias:true,
+ alpha:true
+});
+
+renderer.setPixelRatio(
+ Math.min(window.devicePixelRatio||1,2)
+);
+
+const container=$("scene");
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff,1.4));
+
+const light=new THREE.DirectionalLight(
+ 0xffffff,2
+);
+
+light.position.set(3,4,5);
+scene.add(light);
+
+const material=new THREE.MeshStandardMaterial({
+ color:0x38bdf8,
+ metalness:0.25,
+ roughness:0.35,
+ side:THREE.DoubleSide
+});
+
+const mesh=new THREE.Mesh(
+ new THREE.BufferGeometry(),
+ material
+);
+
+scene.add(mesh);
+
+let resolution=24;
+let speed=3;
+let fluidity=0.5;
+let autoRotate=true;
+
+let history=[];
+let cursor=-1;
+let current=null;
+let transition=null;
+let lastRebuild=0;
+
+/* ==========================================
+   MARCHING TETRAHEDRA RECONSTRUCTION
+   ========================================== */
+
+const corners=[
+ [0,0,0],[1,0,0],[1,1,0],[0,1,0],
+ [0,0,1],[1,0,1],[1,1,1],[0,1,1]
+];
+
+const tetra=[
+ [0,5,1,6],
+ [0,1,2,6],
+ [0,2,3,6],
+ [0,3,7,6],
+ [0,7,4,6],
+ [0,4,5,6]
+];
+
+function buildGeometry(field,n){
+
+ const size=3;
+ const step=size/n;
+ const half=size/2;
+
+ const positions=[];
+
+ function interpolate(a,b,va,vb){
+
+  const denominator=va-vb;
+
+  const t=Math.abs(denominator)<1e-10
+   ?0.5
+   :Math.max(0,Math.min(1,va/denominator));
+
+  return [
+   a[0]+t*(b[0]-a[0]),
+   a[1]+t*(b[1]-a[1]),
+   a[2]+t*(b[2]-a[2])
+  ];
+ }
+
+ function addTriangle(a,b,c){
+  positions.push(...a,...b,...c);
+ }
+
+ function polygonize(p,v){
+
+  const inside=[];
+  const outside=[];
+
+  for(let i=0;i<4;i++){
+   if(v[i]<0)inside.push(i);
+   else outside.push(i);
+  }
+
+  if(inside.length===0||inside.length===4)
+   return;
+
+  if(inside.length===1||inside.length===3){
+
+   const invert=inside.length===3;
+   const a=invert?outside[0]:inside[0];
+   const other=invert?inside:outside;
+
+   const q=other.map(i=>
+    interpolate(p[a],p[i],v[a],v[i])
+   );
+
+   if(invert)
+    addTriangle(q[0],q[2],q[1]);
+   else
+    addTriangle(q[0],q[1],q[2]);
+
+  }else{
+
+   const a=inside[0],b=inside[1];
+   const c=outside[0],d=outside[1];
+
+   const p0=interpolate(p[a],p[c],v[a],v[c]);
+   const p1=interpolate(p[a],p[d],v[a],v[d]);
+   const p2=interpolate(p[b],p[c],v[b],v[c]);
+   const p3=interpolate(p[b],p[d],v[b],v[d]);
+
+   addTriangle(p0,p1,p2);
+   addTriangle(p1,p3,p2);
+  }
+ }
+
+ // Cache field values at shared grid corners.
+ const side=n+1;
+ const values=new Float64Array(side*side*side);
+
+ const index=(i,j,k)=>
+  (i*side+j)*side+k;
+
+ for(let i=0;i<=n;i++){
+  for(let j=0;j<=n;j++){
+   for(let k=0;k<=n;k++){
+
+    const x=-half+i*step;
+    const y=-half+j*step;
+    const z=-half+k*step;
+
+    const value=field(x,y,z);
+
+    if(!Number.isFinite(value)){
+     throw Error(
+      "Equation produced an invalid value. Check its domain."
+     );
+    }
+
+    values[index(i,j,k)]=value;
+   }
+  }
+ }
+
+ for(let i=0;i<n;i++){
+  for(let j=0;j<n;j++){
+   for(let k=0;k<n;k++){
+
+    const p=corners.map(c=>[
+     -half+(i+c[0])*step,
+     -half+(j+c[1])*step,
+     -half+(k+c[2])*step
+    ]);
+
+    const v=corners.map(c=>
+     values[index(
+      i+c[0],
+      j+c[1],
+      k+c[2]
+     )]
+    );
+
+    for(const t of tetra){
+     polygonize(
+      t.map(a=>p[a]),
+      t.map(a=>v[a])
+     );
+    }
+
+   }
+  }
+ }
+
+ if(positions.length===0)
+  throw Error(
+   "No surface found inside the sampling region."
+  );
+
+ const geometry=new THREE.BufferGeometry();
+
+ geometry.setAttribute(
+  "position",
+  new THREE.Float32BufferAttribute(positions,3)
+ );
+
+ geometry.computeVertexNormals();
+
+ return geometry;
+}
+
+function replaceGeometry(geometry){
+
+ const old=mesh.geometry;
+
+ mesh.geometry=geometry;
+
+ old.dispose();
+
+ const count=geometry.attributes.position.count;
+
+ $("vertices").textContent=count;
+ $("triangles").textContent=count/3;
+}
+
+/* ==========================================
+   MATHEMATICAL IDENTITY RECORDS
+   ========================================== */
+
+function makeRecord(data){
+
+ const id="CG-"+Date.now().toString(36)+
+  "-"+Math.random().toString(36).slice(2,8);
+
+ return {
+  schemaVersion:1,
+  recordId:id,
+  createdAt:new Date().toISOString(),
+  name:data.name,
+  expression:data.expression,
+  classification:data.classification,
+  validationStatus:data.validation,
+  properties:data.properties||[],
+  parameters:{
+   resolution,
+   samplingSize:3,
+   morphSpeed:speed,
+   fluidity
+  },
+  geometry:{
+   method:"Marching Tetrahedra",
+   fieldType:"Implicit Scalar Field"
+  },
+  transformation:{
+   previousRecordId:current?.recordId||null,
+   method:"Scalar Field Interpolation"
+  },
+  researchNotes:""
+ };
+}
+
+function compileRecord(record){
+ return compileExpression(record.expression);
+}
+
+function updateRecord(){
+
+ if(!current)return;
+
+ $("recordId").textContent=current.recordId;
+ $("classification").textContent=current.classification;
+ $("validation").textContent=current.validationStatus;
+ $("recordGeometry").textContent=current.name;
+
+ $("notes").value=current.researchNotes||"";
+
+ $("recordDetails").textContent=
+  JSON.stringify(current,null,2);
+}
+
+function updateTimeline(){
+
+ const list=$("timeline");
+ list.replaceChildren();
+
+ history.forEach((record,index)=>{
+
+  const li=document.createElement("li");
+  const button=document.createElement("button");
+
+  button.textContent=
+   (index+1)+". "+record.name;
+
+  if(index===cursor)
+   button.classList.add("active");
+
+  button.onclick=()=>restore(index);
+
+  li.appendChild(button);
+  list.appendChild(li);
+ });
+
+ $("previous").disabled=cursor<=0;
+ $("next").disabled=cursor>=history.length-1;
+
+ $("timelinePosition").textContent=
+  history.length
+   ?(cursor+1)+"/"+history.length
+   :"
