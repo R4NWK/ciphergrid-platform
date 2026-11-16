@@ -1,890 +1,2049 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CipherGrid MorphStudio v0.5.1</title>
-
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;
- background:#080c18;
- color:#f1f5f9;
- font-family:Arial,sans-serif;
- line-height:1.5;
-}
-header{
- padding:22px 14px;
- text-align:center;
- background:#111827;
- border-bottom:1px solid #334155;
-}
+body{margin:0;background:#080c18;color:#e5eefb;font:15px Arial,sans-serif}
+header{text-align:center;padding:18px;background:#111c30}
 h1{margin:0;font-size:25px}
-.subtitle{color:#67e8f9;margin-top:6px}
-main{max-width:1100px;margin:auto;padding:14px}
-#scene{
- height:370px;
- border:1px solid #334155;
- border-radius:12px;
- background:radial-gradient(circle,#23334c,#080c18);
- overflow:hidden;
- touch-action:none;
-}
-.grid{
- display:grid;
- grid-template-columns:1fr;
- gap:14px;
- margin-top:14px;
-}
-@media(min-width:750px){
- .grid{grid-template-columns:1fr 1fr}
-}
-.panel{
- background:#111827;
- border:1px solid #334155;
- border-radius:12px;
- padding:17px;
- min-width:0;
-}
+header p{color:#67e8f9;margin:8px}
+main{max-width:1100px;margin:auto;padding:12px}
+#view{height:350px;border:1px solid #455673;border-radius:12px;overflow:hidden;touch-action:none;background:#142238}
+#view canvas{display:block}
+section{background:#121d31;border:1px solid #34445e;border-radius:12px;padding:15px;min-width:0}
+.grid{display:grid;gap:12px;margin-top:12px}
+@media(min-width:740px){.grid{grid-template-columns:1fr 1fr}}
 h2{font-size:18px;margin:0 0 12px}
-h3{font-size:15px;margin:16px 0 8px}
-label{display:block;margin-top:12px}
-input,textarea,select{
- font:inherit;
-}
-input[type=text],
-input[type=number],
-textarea,select{
- width:100%;
- padding:11px;
- margin-top:5px;
- background:#0f172a;
- color:#fff;
- border:1px solid #475569;
- border-radius:8px;
- font-size:16px;
-}
-textarea{min-height:85px;resize:vertical}
+label{display:block;margin:12px 0 5px}
+input[type=text],textarea,select{width:100%;background:#081222;border:1px solid #51627d;border-radius:7px;padding:11px;color:white;font:16px Arial}
+textarea{min-height:90px}
 input[type=range]{width:100%}
-button{
- background:#2563eb;
- color:white;
- border:1px solid #3b82f6;
- border-radius:8px;
- padding:11px 13px;
- margin:5px 4px 5px 0;
- font-size:14px;
- min-height:43px;
- cursor:pointer;
-}
-button.secondary{background:#334155}
-button:disabled{opacity:.4}
-.row{display:flex;flex-wrap:wrap;gap:4px}
-.note{font-size:13px;color:#94a3b8}
-.good{color:#86efac}
-.warning{color:#fbbf24}
-#status{color:#67e8f9;white-space:pre-wrap}
-#timeline{
- list-style:none;
- padding:0;
- display:flex;
- flex-wrap:wrap;
- gap:5px;
-}
-#timeline button{background:#1e293b}
-#timeline button.active{
- background:#155e75;
- border-color:#67e8f9;
-}
-pre{
- background:#080c18;
- padding:12px;
- border-radius:8px;
- overflow-wrap:anywhere;
- white-space:pre-wrap;
- font-size:12px;
- max-height:260px;
- overflow:auto;
-}
-.metric{
- display:flex;
- justify-content:space-between;
- border-bottom:1px solid #273449;
- padding:6px 0;
- gap:10px;
-}
-.metric strong{text-align:right}
-code{color:#93c5fd}
+button{padding:11px;margin:5px 4px 5px 0;border:1px solid #60a5fa;border-radius:7px;background:#1d4ed8;color:white;font-size:14px}
+button:disabled{opacity:.45}
+.hint{color:#a6b8ce;font-size:13px;line-height:1.5}
+.row{display:flex;flex-wrap:wrap}
+.metric{display:flex;justify-content:space-between;border-bottom:1px solid #354158;padding:7px 0;gap:8px}
+.metric strong{text-align:right;overflow-wrap:anywhere}
+#status{white-space:pre-wrap;color:#67e8f9}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#081222;padding:10px;border-radius:8px;max-height:240px;overflow:auto;font-size:12px}
+#timeline{display:flex;flex-wrap:wrap;list-style:none;padding:0}
+#timeline .selected{background:#0e7490}
 </style>
 </head>
-
 <body>
-
 <header>
 <h1>CipherGrid MorphStudio</h1>
-<div class="subtitle">
-Mathematical Knowledge + FluidMorph Engines • v0.5.1
-</div>
+<p>Mathematical Knowledge Engine + FluidMorph Engine • v0.5.1</p>
 </header>
-
 <main>
-
-<div id="scene"></div>
-
-<p class="note">
-Drag with one finger to rotate. Pinch with two fingers
-to zoom. Geometry is reconstructed from mathematical fields.
-</p>
-
+<div id="view"></div>
 <div class="grid">
-
-<section class="panel">
-<h2>1. Mathematical Knowledge Engine</h2>
-
-<label for="formulaSelect">Mathematical Formula Library</label>
+<section>
+<h2>Mathematical Knowledge Engine</h2>
+<label>Formula Library</label>
 <select id="formulaSelect"></select>
-
-<p id="formulaDescription" class="note"></p>
-
-<label for="equation">Implicit Equation — F(x,y,z) = 0</label>
-<input id="equation" type="text"
- value="sqrt(x^2+y^2+z^2)-1">
-
-<p class="note">
-Enter the left-hand expression only.
-Supported: +, -, *, /, ^, parentheses,
-sqrt, sin, cos, tan, abs, exp, log, min, max,
-x, y, z, pi, e.
-</p>
-
-<label for="command">Geometry Command</label>
-<input id="command" type="text"
- placeholder="Example: torus">
-
+<p id="formulaDescription" class="hint"></p>
+<label>Implicit Equation f(x,y,z) = 0</label>
+<input id="equation" type="text" value="x*x+y*y+z*z-1">
 <div class="row">
 <button id="generateEquation">Generate Equation</button>
-<button id="runCommand">Run Command</button>
 </div>
-
-<p id="formulaStatus" class="note"></p>
-
-<h3>Quick Geometry</h3>
+<label>Command</label>
+<input id="command" type="text" placeholder="sphere, torus, union, subtract, gyroid">
+<button id="runCommand">Run Command</button>
+<p class="hint">Custom equations support x, y, z, arithmetic, powers, parentheses, and approved mathematical functions. No arbitrary JavaScript execution.</p>
 <div class="row">
 <button data-shape="sphere">Sphere</button>
 <button data-shape="torus">Torus</button>
 <button data-shape="ellipsoid">Ellipsoid</button>
-<button data-shape="union">Merge Spheres</button>
-<button data-shape="subtract">Subtract Sphere</button>
+<button data-shape="union">Union</button>
+<button data-shape="subtract">Subtract</button>
 <button data-shape="gyroid">Gyroid</button>
 </div>
-
 </section>
-
-<section class="panel">
-<h2>2. FluidMorph Engine</h2>
-
-<label>
-Morph Speed:
-<span id="speedValue">3</span> seconds
-</label>
-<input id="speed" type="range"
- min="0.5" max="8" step="0.5" value="3">
-
-<label>
-Fluidity:
-<span id="fluidValue">50</span>%
-</label>
-<input id="fluid" type="range"
- min="0" max="100" step="5" value="50">
-
-<label>
-Surface Detail:
-<span id="detailValue">24</span>
-</label>
-<input id="detail" type="range"
- min="12" max="32" step="4" value="24">
-
+<section>
+<h2>FluidMorph Engine</h2>
+<label>Morph Speed <output id="speedValue"></output></label>
+<input id="speed" type="range" min="1" max="10" value="5">
+<label>Fluidity <output id="fluidValue"></output></label>
+<input id="fluid" type="range" min="1" max="10" value="7">
+<label>Geometry Detail <output id="detailValue"></output></label>
+<input id="detail" type="range" min="12" max="32" step="2" value="24">
 <div class="row">
-<button id="rotationToggle" class="secondary">
-Auto Rotation: ON
-</button>
-<button id="resetView" class="secondary">
-Reset View
-</button>
+<button id="rotationToggle">Auto Rotation: ON</button>
+<button id="resetView">Reset View</button>
 </div>
-
-<p class="note">
-Morphing blends mathematical fields and reconstructs
-the resulting surface. This is experimental field
-interpolation, not a physical fluid simulation.
-</p>
-
-<h3>Shape Memory</h3>
+<p class="hint">Drag to rotate. Pinch to zoom. FluidMorph interpolates mathematical fields; it is not a physical fluid simulation.</p>
+<h2>Shape Memory</h2>
 <div class="row">
-<button id="previous">Previous Shape</button>
-<button id="next">Next Shape</button>
+<button id="previous">Previous</button>
+<button id="next">Next</button>
 </div>
-
-<ul id="timeline"></ul>
-
+<input id="timeline" type="range" min="0" max="0" value="0">
+<p id="timelinePosition" class="hint">0/0</p>
 </section>
-
-<section class="panel">
-<h2>3. Mathematical Identity Record</h2>
-
-<div class="metric">
-<span>Record ID</span>
-<strong id="recordId">—</strong>
-</div>
-
-<div class="metric">
-<span>Formula Classification</span>
-<strong id="classification">—</strong>
-</div>
-
-<div class="metric">
-<span>Validation Status</span>
-<strong id="validation">—</strong>
-</div>
-
-<div class="metric">
-<span>Geometry</span>
-<strong id="recordGeometry">—</strong>
-</div>
-
-<h3>Research Notes</h3>
-<textarea id="notes"
- placeholder="Record observations, questions, and findings..."></textarea>
-
+<section>
+<h2>Mathematical Identity Record</h2>
+<div class="metric"><span>Record ID</span><strong id="recordId">—</strong></div>
+<div class="metric"><span>Classification</span><strong id="classification">—</strong></div>
+<div class="metric"><span>Validation</span><strong id="validation">—</strong></div>
+<div class="metric"><span>Geometry</span><strong id="recordGeometry">—</strong></div>
+<pre id="recordDetails">No record yet.</pre>
+<label>Research Notes</label>
+<textarea id="notes" placeholder="Record observations, hypotheses, and potential applications."></textarea>
 <div class="row">
 <button id="saveNotes">Save Notes</button>
-<button id="exportRecord">Export Record</button>
-<button id="importRecord" class="secondary">Import Record</button>
+<button id="exportRecord">Export JSON</button>
+<button id="importRecord">Import JSON</button>
 </div>
-
-<input type="file" id="importFile"
- accept=".json,application/json" hidden>
-
-<h3>Record Details</h3>
-<pre id="recordDetails"></pre>
-
-<p class="note">
-Records can be exported as JSON and imported later.
-The timeline is temporary until exported.
-</p>
-
+<input id="importFile" type="file" accept=".json,application/json" hidden>
 </section>
-
-<section class="panel">
-<h2>4. Development Monitor</h2>
-
-<div class="metric">
-<span>Frame Rate</span>
-<strong id="fps">—</strong>
-</div>
-
-<div class="metric">
-<span>Vertices</span>
-<strong id="vertices">—</strong>
-</div>
-
-<div class="metric">
-<span>Triangles</span>
-<strong id="triangles">—</strong>
-</div>
-
-<div class="metric">
-<span>Current Shape</span>
-<strong id="shape">—</strong>
-</div>
-
-<div class="metric">
-<span>Mesh Resolution</span>
-<strong id="resolution">24</strong>
-</div>
-
-<div class="metric">
-<span>Timeline Position</span>
-<strong id="timelinePosition">—</strong>
-</div>
-
-<h3>Engine Status</h3>
+<section>
+<h2>Development Monitor</h2>
+<div class="metric"><span>FPS</span><strong id="fps">—</strong></div>
+<div class="metric"><span>Vertices</span><strong id="vertices">—</strong></div>
+<div class="metric"><span>Triangles</span><strong id="triangles">—</strong></div>
+<div class="metric"><span>Current Shape</span><strong id="shape">—</strong></div>
+<div class="metric"><span>Resolution</span><strong id="resolution">—</strong></div>
+<div class="metric"><span>Timeline</span><strong id="timelinePositionMonitor">—</strong></div>
 <p id="status">Initializing...</p>
-
-<p class="note">
-Mesh vertices shown here include duplicated vertices
-used for triangle reconstruction.
-</p>
-
 </section>
-
 </div>
-
 </main>
-
+<script>
+window.addEventListener("error",function(event){
+ const status=document.getElementById("status");
+ if(status)status.textContent="Startup error: "+event.message;
+});
+window.addEventListener("unhandledrejection",function(event){
+ const status=document.getElementById("status");
+ if(status)status.textContent="Startup error: "+String(event.reason);
+});
+</script>
 <script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
-import * as THREE from
-"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+const $ = id => document.getElementById(id);
 
-const $=id=>document.getElementById(id);
+function setStatus(message) {
+  $("status").textContent = message;
+}
 
-/* ==========================================
-   CIPHERGRID MATHEMATICAL KNOWLEDGE ENGINE
-   ========================================== */
+try {
 
-const FORMULAS={
- sphere:{
-  name:"Sphere",
-  expression:"sqrt(x^2+y^2+z^2)-1",
-  classification:"Signed Distance Field",
-  validation:"Established mathematics",
-  description:"Unit sphere centered at the origin.",
-  properties:["Closed surface","Genus 0"]
- },
- torus:{
-  name:"Torus",
-  expression:"sqrt((sqrt(x^2+z^2)-0.8)^2+y^2)-0.3",
-  classification:"Signed Distance Field",
-  validation:"Established mathematics",
-  description:"Torus with major radius 0.8 and tube radius 0.3.",
-  properties:["Closed surface","Genus 1"]
- },
- ellipsoid:{
-  name:"Ellipsoid",
-  expression:"(x/1.1)^2+(y/0.7)^2+(z/0.85)^2-1",
-  classification:"Implicit Surface",
-  validation:"Established mathematics",
-  description:"Ellipsoid defined by three semi-axes.",
-  properties:["Closed surface","Genus 0"]
- },
- union:{
-  name:"Merged Spheres",
-  expression:"min(sqrt((x-0.55)^2+y^2+z^2)-0.75,sqrt((x+0.55)^2+y^2+z^2)-0.75)",
-  classification:"Constructive Solid Geometry",
-  validation:"Established mathematics",
-  description:"Union of two overlapping spherical fields.",
-  properties:["Boolean union","Connected surface"]
- },
- subtract:{
-  name:"Subtracted Sphere",
-  expression:"max(sqrt(x^2+y^2+z^2)-1,-(sqrt((x-0.45)^2+y^2+z^2)-0.65))",
-  classification:"Constructive Solid Geometry",
-  validation:"Established mathematics",
-  description:"Difference between two spherical fields.",
-  properties:["Boolean subtraction","Recessed surface"]
- },
- gyroid:{
-  name:"Gyroid",
-  expression:"sin(4*x)*cos(4*y)+sin(4*y)*cos(4*z)+sin(4*z)*cos(4*x)",
-  classification:"Periodic Implicit Surface",
-  validation:"Established mathematics",
-  description:"Periodic implicit surface, clipped to the sampling domain.",
-  properties:["Periodic surface","Open boundary in finite sample"]
- }
+const CATALOG = {
+  sphere: {
+    name: "Sphere",
+    expr: "sqrt(x^2+y^2+z^2)-1",
+    kind: "Signed distance field",
+    desc: "Unit sphere. A closed surface with genus zero.",
+    properties: ["Closed surface", "Genus 0"]
+  },
+
+  torus: {
+    name: "Torus",
+    expr: "sqrt((sqrt(x^2+z^2)-0.8)^2+y^2)-0.3",
+    kind: "Signed distance field",
+    desc: "Ring torus with major radius 0.8 and tube radius 0.3.",
+    properties: ["Closed surface", "Genus 1"]
+  },
+
+  ellipsoid: {
+    name: "Ellipsoid",
+    expr: "(x/1.1)^2+(y/0.7)^2+(z/0.85)^2-1",
+    kind: "Implicit field",
+    desc: "Ellipsoid with three unequal semi-axes.",
+    properties: ["Closed surface", "Genus 0"]
+  },
+
+  union: {
+    name: "Merged Spheres",
+    expr: "min(sqrt((x-0.55)^2+y^2+z^2)-0.75,sqrt((x+0.55)^2+y^2+z^2)-0.75)",
+    kind: "Constructive solid geometry",
+    desc: "Union of two overlapping spheres.",
+    properties: ["Boolean union"]
+  },
+
+  subtract: {
+    name: "Subtracted Sphere",
+    expr: "max(sqrt(x^2+y^2+z^2)-1,-(sqrt((x-0.45)^2+y^2+z^2)-0.65))",
+    kind: "Constructive solid geometry",
+    desc: "A sphere with an offset spherical cavity.",
+    properties: ["Boolean difference"]
+  },
+
+  gyroid: {
+    name: "Gyroid",
+    expr: "sin(4*x)*cos(4*y)+sin(4*y)*cos(4*z)+sin(4*z)*cos(4*x)",
+    kind: "Periodic implicit field",
+    desc: "A periodic gyroid level set sampled inside a finite box.",
+    properties: ["Periodic surface", "Clipped boundary"]
+  }
 };
 
-const library=$("formulaSelect");
 
-for(const [key,item] of Object.entries(FORMULAS)){
- const option=document.createElement("option");
- option.value=key;
- option.textContent=item.name;
- library.appendChild(option);
-}
+// MATHEMATICAL EXPRESSION PARSER
+// No eval() or Function() execution.
 
-/* ==========================================
-   SAFE MATHEMATICAL EXPRESSION PARSER
-   No eval() or Function() execution.
-   ========================================== */
+function compile(source) {
 
-function compileExpression(source){
-
- const tokens=source.match(
-  /\s*(?:\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[a-zA-Z_]+|[+\-*/^(),])/g
- )||[];
-
- if(tokens.join("").replace(/\s/g,"")!==
-    source.replace(/\s/g,"")){
-  throw Error("Unsupported character in equation.");
- }
-
- const t=tokens.map(s=>s.trim());
- let pos=0;
-
- const peek=()=>t[pos];
- const take=()=>t[pos++];
-
- function expect(symbol){
-  if(take()!==symbol)
-   throw Error("Expected "+symbol);
- }
-
- function primary(){
-
-  const token=take();
-
-  if(token===undefined)
-   throw Error("Incomplete equation.");
-
-  if(token==="("){
-   const node=expression();
-   expect(")");
-   return node;
+  if (
+    typeof source !== "string" ||
+    !source.trim() ||
+    source.length > 600
+  ) {
+    throw Error("Equation must contain 1–600 characters.");
   }
 
-  if(/^(?:\d|\.)/.test(token)){
-   const value=Number(token);
-   if(!Number.isFinite(value))
-    throw Error("Invalid number.");
-   return ()=>value;
+  const clean = source.replace(/\s+/g, "");
+
+  const tokens = clean.match(
+    /(?:\d+(?:\.\d*)?(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?|[a-zA-Z_]+|[+\-*/^(),])/g
+  ) || [];
+
+  if (tokens.join("") !== clean) {
+    throw Error("Equation contains unsupported characters.");
   }
 
-  if(/^[a-zA-Z_]+$/.test(token)){
+  let i = 0;
 
-   const name=token.toLowerCase();
+  const peek = () => tokens[i];
+  const take = () => tokens[i++];
 
-   if(peek()==="("){
+  function expect(character) {
+    if (take() !== character) {
+      throw Error("Expected " + character);
+    }
+  }
 
-    take();
+  function atom() {
 
-    const args=[];
+    const token = take();
 
-    if(peek()!==")"){
-     args.push(expression());
-     while(peek()===","){
+    if (token === undefined) {
+      throw Error("Incomplete expression.");
+    }
+
+    if (token === "(") {
+      const result = add();
+      expect(")");
+      return result;
+    }
+
+    if (/^(?:\d|\.)/.test(token)) {
+      const number = Number(token);
+
+      if (!Number.isFinite(number)) {
+        throw Error("Invalid number.");
+      }
+
+      return () => number;
+    }
+
+    if (/^[a-zA-Z_]+$/.test(token)) {
+
+      const name = token.toLowerCase();
+
+      if (peek() === "(") {
+
+        take();
+
+        const args = [];
+
+        if (peek() !== ")") {
+          args.push(add());
+
+          while (peek() === ",") {
+            take();
+            args.push(add());
+          }
+        }
+
+        expect(")");
+
+        const functions = {
+          sqrt: Math.sqrt,
+          sin: Math.sin,
+          cos: Math.cos,
+          tan: Math.tan,
+          abs: Math.abs,
+          exp: Math.exp,
+          log: Math.log,
+          min: Math.min,
+          max: Math.max
+        };
+
+        const fn = functions[name];
+
+        if (!fn) {
+          throw Error("Unknown function: " + name);
+        }
+
+        const multiple = name === "min" || name === "max";
+
+        if (multiple ? args.length < 2 : args.length !== 1) {
+          throw Error("Incorrect arguments for " + name);
+        }
+
+        return (x, y, z) =>
+          fn(...args.map(arg => arg(x, y, z)));
+      }
+
+      if (name === "x") return x => x;
+      if (name === "y") return (x, y) => y;
+      if (name === "z") return (x, y, z) => z;
+
+      if (name === "pi") return () => Math.PI;
+      if (name === "e") return () => Math.E;
+
+      throw Error("Unknown variable: " + name);
+    }
+
+    throw Error("Unexpected token: " + token);
+  }
+
+  function unary() {
+
+    if (peek() === "+") {
       take();
-      args.push(expression());
-     }
+      return unary();
     }
 
-    expect(")");
+    if (peek() === "-") {
+      take();
 
-    const functions={
-     sqrt:Math.sqrt,
-     sin:Math.sin,
-     cos:Math.cos,
-     tan:Math.tan,
-     abs:Math.abs,
-     exp:Math.exp,
-     log:Math.log,
-     min:Math.min,
-     max:Math.max
-    };
+      const fn = unary();
 
-    if(!functions[name])
-     throw Error("Unknown function: "+name);
-
-    if(
-     (name==="min"||name==="max")
-      ?args.length<2
-      :args.length!==1
-    ){
-     throw Error("Incorrect arguments for "+name);
+      return (x, y, z) => -fn(x, y, z);
     }
 
-    return (x,y,z)=>
-     functions[name](...args.map(f=>f(x,y,z)));
-
-   }
-
-   if(name==="x")return (x)=>x;
-   if(name==="y")return (x,y)=>y;
-   if(name==="z")return (x,y,z)=>z;
-   if(name==="pi")return ()=>Math.PI;
-   if(name==="e")return ()=>Math.E;
-
-   throw Error("Unknown variable: "+name);
-
+    return power();
   }
 
-  throw Error("Unexpected token: "+token);
+  function power() {
 
- }
+    let left = atom();
 
- function power(){
-  let a=primary();
-  if(peek()==="^"){
-   take();
-   const b=unary();
-   const old=a;
-   a=(x,y,z)=>Math.pow(
-    old(x,y,z),b(x,y,z)
-   );
-  }
-  return a;
- }
+    if (peek() === "^") {
 
- function unary(){
-  if(peek()==="+"){
-   take();
-   return unary();
-  }
-  if(peek()==="-"){
-   take();
-   const a=unary();
-   return (x,y,z)=>-a(x,y,z);
-  }
-  return power();
- }
+      take();
 
- function term(){
-  let a=unary();
+      const right = unary();
+      const previous = left;
 
-  while(peek()==="*"||peek()==="/"){
-   const op=take();
-   const b=unary();
-   const old=a;
+      left = (x, y, z) =>
+        Math.pow(previous(x, y, z), right(x, y, z));
+    }
 
-   a=op==="*"
-    ?(x,y,z)=>old(x,y,z)*b(x,y,z)
-    :(x,y,z)=>old(x,y,z)/b(x,y,z);
+    return left;
   }
 
-  return a;
- }
+  function multiply() {
 
- function expression(){
-  let a=term();
+    let left = unary();
 
-  while(peek()==="+"||peek()==="-"){
-   const op=take();
-   const b=term();
-   const old=a;
+    while (peek() === "*" || peek() === "/") {
 
-   a=op==="+"
-    ?(x,y,z)=>old(x,y,z)+b(x,y,z)
-    :(x,y,z)=>old(x,y,z)-b(x,y,z);
+      const operator = take();
+      const right = unary();
+      const previous = left;
+
+      if (operator === "*") {
+
+        left = (x, y, z) =>
+          previous(x, y, z) * right(x, y, z);
+
+      } else {
+
+        left = (x, y, z) =>
+          previous(x, y, z) / right(x, y, z);
+      }
+    }
+
+    return left;
   }
 
-  return a;
- }
+  function add() {
 
- const result=expression();
+    let left = multiply();
 
- if(pos!==t.length)
-  throw Error("Unexpected token: "+peek());
+    while (peek() === "+" || peek() === "-") {
 
- return result;
+      const operator = take();
+      const right = multiply();
+      const previous = left;
 
+      if (operator === "+") {
+
+        left = (x, y, z) =>
+          previous(x, y, z) + right(x, y, z);
+
+      } else {
+
+        left = (x, y, z) =>
+          previous(x, y, z) - right(x, y, z);
+      }
+    }
+
+    return left;
+  }
+
+  const result = add();
+
+  if (i !== tokens.length) {
+    throw Error("Unexpected token: " + peek());
+  }
+
+  return result;
 }
 
-/* ==========================================
-   FLUIDMORPH ENGINE
-   ========================================== */
 
-const scene=new THREE.Scene();
+// MATHEMATICAL PARSER SELF-TESTS
 
-const camera=new THREE.PerspectiveCamera(
- 45,1,0.1,100
+const tests = [
+  ["sqrt(x^2+y^2+z^2)-1", 0, 0, 0, -1],
+  ["-x^2", 2, 0, 0, -4],
+  ["2^3^2", 0, 0, 0, 512]
+];
+
+for (const [expression, x, y, z, expected] of tests) {
+
+  const actual = compile(expression)(x, y, z);
+
+  if (Math.abs(actual - expected) > 1e-8) {
+    throw Error("Parser self-test failed: " + expression);
+  }
+}
+
+
+// POPULATE MATHEMATICAL FORMULA LIBRARY
+
+const formulaSelect = $("formulaSelect");
+
+for (const [key, entry] of Object.entries(CATALOG)) {
+
+  const option = document.createElement("option");
+
+  option.value = key;
+  option.textContent = entry.name;
+
+  formulaSelect.append(option);
+}
+
+formulaSelect.onchange = () => {
+
+  const entry = CATALOG[formulaSelect.value];
+
+  $("equation").value = entry.expr;
+  $("formulaDescription").textContent = entry.desc;
+};
+
+formulaSelect.onchange();
+
+setStatus("Mathematical engine ready. Initializing 3D renderer...");
+
+
+// THREE.JS 3D RENDERING ENGINE
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  45,
+  1,
+  0.1,
+  100
 );
 
-camera.position.set(0,0,5);
+camera.position.z = 5;
 
-const renderer=new THREE.WebGLRenderer({
- antialias:true,
- alpha:true
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  alpha: true
 });
 
 renderer.setPixelRatio(
- Math.min(window.devicePixelRatio||1,2)
+  Math.min(window.devicePixelRatio || 1, 2)
 );
 
-const container=$("scene");
-container.appendChild(renderer.domElement);
+$("view").append(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0xffffff,1.4));
+scene.add(new THREE.AmbientLight(0xffffff, 1.6));
 
-const light=new THREE.DirectionalLight(
- 0xffffff,2
+const light = new THREE.DirectionalLight(
+  0xffffff,
+  2
 );
 
-light.position.set(3,4,5);
+light.position.set(3, 4, 5);
+
 scene.add(light);
 
-const material=new THREE.MeshStandardMaterial({
- color:0x38bdf8,
- metalness:0.25,
- roughness:0.35,
- side:THREE.DoubleSide
+const material = new THREE.MeshStandardMaterial({
+  color: 0x38bdf8,
+  metalness: 0.15,
+  roughness: 0.4,
+  side: THREE.DoubleSide
 });
 
-const mesh=new THREE.Mesh(
- new THREE.BufferGeometry(),
- material
+const mesh = new THREE.Mesh(
+  new THREE.BufferGeometry(),
+  material
 );
 
 scene.add(mesh);
 
-let resolution=24;
-let speed=3;
-let fluidity=0.5;
-let autoRotate=true;
 
-let history=[];
-let cursor=-1;
-let current=null;
-let transition=null;
-let lastRebuild=0;
+// RESPONSIVE DISPLAY
 
-/* ==========================================
-   MARCHING TETRAHEDRA RECONSTRUCTION
-   ========================================== */
+function resize() {
 
-const corners=[
- [0,0,0],[1,0,0],[1,1,0],[0,1,0],
- [0,0,1],[1,0,1],[1,1,1],[0,1,1]
+  const view = $("view");
+
+  const width = view.clientWidth;
+  const height = view.clientHeight;
+
+  camera.aspect = width / height;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(width, height, false);
+}
+
+resize();
+
+window.addEventListener("resize", resize);
+
+
+// MARCHING TETRAHEDRA GEOMETRY ENGINE
+
+const corners = [
+  [0,0,0],
+  [1,0,0],
+  [1,1,0],
+  [0,1,0],
+  [0,0,1],
+  [1,0,1],
+  [1,1,1],
+  [0,1,1]
 ];
 
-const tetra=[
- [0,5,1,6],
- [0,1,2,6],
- [0,2,3,6],
- [0,3,7,6],
- [0,7,4,6],
- [0,4,5,6]
+const tetrahedra = [
+  [0,5,1,6],
+  [0,1,2,6],
+  [0,2,3,6],
+  [0,3,7,6],
+  [0,7,4,6],
+  [0,4,5,6]
 ];
 
-function buildGeometry(field,n){
+function generateGeometry(field, resolution) {
 
- const size=3;
- const step=size/n;
- const half=size/2;
+  const n = resolution;
+  const side = n + 1;
 
- const positions=[];
+  const values = new Float64Array(side ** 3);
 
- function interpolate(a,b,va,vb){
+  const index = (i, j, k) =>
+    (i * side + j) * side + k;
 
-  const denominator=va-vb;
+  for (let i = 0; i <= n; i++) {
+    for (let j = 0; j <= n; j++) {
+      for (let k = 0; k <= n; k++) {
 
-  const t=Math.abs(denominator)<1e-10
-   ?0.5
-   :Math.max(0,Math.min(1,va/denominator));
+        const x = -1.5 + 3 * i / n;
+        const y = -1.5 + 3 * j / n;
+        const z = -1.5 + 3 * k / n;
 
-  return [
-   a[0]+t*(b[0]-a[0]),
-   a[1]+t*(b[1]-a[1]),
-   a[2]+t*(b[2]-a[2])
-  ];
- }
+        const value = field(x, y, z);
 
- function addTriangle(a,b,c){
-  positions.push(...a,...b,...c);
- }
+        if (!Number.isFinite(value)) {
+          throw Error(
+            "Equation produces undefined values inside the sample region."
+          );
+        }
 
- function polygonize(p,v){
-
-  const inside=[];
-  const outside=[];
-
-  for(let i=0;i<4;i++){
-   if(v[i]<0)inside.push(i);
-   else outside.push(i);
-  }
-
-  if(inside.length===0||inside.length===4)
-   return;
-
-  if(inside.length===1||inside.length===3){
-
-   const invert=inside.length===3;
-   const a=invert?outside[0]:inside[0];
-   const other=invert?inside:outside;
-
-   const q=other.map(i=>
-    interpolate(p[a],p[i],v[a],v[i])
-   );
-
-   if(invert)
-    addTriangle(q[0],q[2],q[1]);
-   else
-    addTriangle(q[0],q[1],q[2]);
-
-  }else{
-
-   const a=inside[0],b=inside[1];
-   const c=outside[0],d=outside[1];
-
-   const p0=interpolate(p[a],p[c],v[a],v[c]);
-   const p1=interpolate(p[a],p[d],v[a],v[d]);
-   const p2=interpolate(p[b],p[c],v[b],v[c]);
-   const p3=interpolate(p[b],p[d],v[b],v[d]);
-
-   addTriangle(p0,p1,p2);
-   addTriangle(p1,p3,p2);
-  }
- }
-
- // Cache field values at shared grid corners.
- const side=n+1;
- const values=new Float64Array(side*side*side);
-
- const index=(i,j,k)=>
-  (i*side+j)*side+k;
-
- for(let i=0;i<=n;i++){
-  for(let j=0;j<=n;j++){
-   for(let k=0;k<=n;k++){
-
-    const x=-half+i*step;
-    const y=-half+j*step;
-    const z=-half+k*step;
-
-    const value=field(x,y,z);
-
-    if(!Number.isFinite(value)){
-     throw Error(
-      "Equation produced an invalid value. Check its domain."
-     );
+        values[index(i, j, k)] = value;
+      }
     }
-
-    values[index(i,j,k)]=value;
-   }
   }
- }
 
- for(let i=0;i<n;i++){
-  for(let j=0;j<n;j++){
-   for(let k=0;k<n;k++){
+  const vertices = [];
 
-    const p=corners.map(c=>[
-     -half+(i+c[0])*step,
-     -half+(j+c[1])*step,
-     -half+(k+c[2])*step
-    ]);
+  function interpolate(a, b, va, vb) {
 
-    const v=corners.map(c=>
-     values[index(
-      i+c[0],
-      j+c[1],
-      k+c[2]
-     )]
+    const t = Math.abs(va - vb) < 1e-12
+      ? 0.5
+      : Math.max(0, Math.min(1, va / (va - vb)));
+
+    return a.map(
+      (value, j) => value + t * (b[j] - value)
     );
-
-    for(const t of tetra){
-     polygonize(
-      t.map(a=>p[a]),
-      t.map(a=>v[a])
-     );
-    }
-
-   }
   }
- }
 
- if(positions.length===0)
-  throw Error(
-   "No surface found inside the sampling region."
+  function triangle(a, b, c) {
+    vertices.push(...a, ...b, ...c);
+  }
+
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      for (let k = 0; k < n; k++) {
+
+        const points = corners.map(c => [
+          -1.5 + 3 * (i + c[0]) / n,
+          -1.5 + 3 * (j + c[1]) / n,
+          -1.5 + 3 * (k + c[2]) / n
+        ]);
+
+        const fieldValues = corners.map(c =>
+          values[index(
+            i + c[0],
+            j + c[1],
+            k + c[2]
+          )]
+        );
+
+        for (const ids of tetrahedra) {
+
+          const p = ids.map(a => points[a]);
+          const f = ids.map(a => fieldValues[a]);
+
+          const inside = [];
+          const outside = [];
+
+          for (let a = 0; a < 4; a++) {
+
+            if (f[a] < 0) {
+              inside.push(a);
+            } else {
+              outside.push(a);
+            }
+          }
+
+          if (
+            inside.length === 0 ||
+            inside.length === 4
+          ) {
+            continue;
+          }
+
+          if (
+            inside.length === 1 ||
+            inside.length === 3
+          ) {
+
+            const reverse = inside.length === 3;
+
+            const a = reverse
+              ? outside[0]
+              : inside[0];
+
+            const others = reverse
+              ? inside
+              : outside;
+
+            const intersections = others.map(b =>
+              interpolate(p[a], p[b], f[a], f[b])
+            );
+
+            if (reverse) {
+
+              triangle(
+                intersections[0],
+                intersections[2],
+                intersections[1]
+              );
+
+            } else {
+
+              triangle(
+                intersections[0],
+                intersections[1],
+                intersections[2]
+              );
+            }
+
+          } else {
+
+            const [a, b] = inside;
+            const [c, d] = outside;
+
+            const p0 = interpolate(
+              p[a], p[c], f[a], f[c]
+            );
+
+            const p1 = interpolate(
+              p[a], p[d], f[a], f[d]
+            );
+
+            const p2 = interpolate(
+              p[b], p[c], f[b], f[c]
+            );
+
+            const p3 = interpolate(
+              p[b], p[d], f[b], f[d]
+            );
+
+            triangle(p0, p1, p2);
+            triangle(p1, p3, p2);
+          }
+        }
+      }
+    }
+  }
+
+  if (vertices.length === 0) {
+    throw Error(
+      "No surface was detected. Try another equation."
+    );
+  }
+
+  const geometry = new THREE.BufferGeometry();
+
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(vertices, 3)
   );
 
- const geometry=new THREE.BufferGeometry();
+  geometry.computeVertexNormals();
 
- geometry.setAttribute(
-  "position",
-  new THREE.Float32BufferAttribute(positions,3)
- );
-
- geometry.computeVertexNormals();
-
- return geometry;
+  return geometry;
 }
 
-function replaceGeometry(geometry){
+// =====================================================
+// CIPHERGRID MORPHSTUDIO v0.5.1
+// PART 3 — FLUIDMORPH AND RESEARCH SYSTEM
+// =====================================================
 
- const old=mesh.geometry;
 
- mesh.geometry=geometry;
+// APPLICATION STATE
 
- old.dispose();
+let currentField = null;
+let currentRecord = null;
+let currentGeometry = null;
 
- const count=geometry.attributes.position.count;
+let history = [];
+let cursor = -1;
 
- $("vertices").textContent=count;
- $("triangles").textContent=count/3;
+let transition = null;
+
+let autoRotation = true;
+let rotationX = 0.25;
+let rotationY = 0;
+
+let zoom = 5;
+
+let recordCounter = 0;
+
+let lastFrame = performance.now();
+let fpsFrames = 0;
+let fpsTime = performance.now();
+
+
+// =====================================================
+// CONTROL VALUES
+// =====================================================
+
+function resolutionValue() {
+  return Number($("detail").value);
 }
 
-/* ==========================================
-   MATHEMATICAL IDENTITY RECORDS
-   ========================================== */
+function morphSpeed() {
+  return Number($("speed").value);
+}
 
-function makeRecord(data){
+function fluidityValue() {
+  return Number($("fluid").value);
+}
 
- const id="CG-"+Date.now().toString(36)+
-  "-"+Math.random().toString(36).slice(2,8);
+function updateSliderLabels() {
 
- return {
-  schemaVersion:1,
-  recordId:id,
-  createdAt:new Date().toISOString(),
-  name:data.name,
-  expression:data.expression,
-  classification:data.classification,
-  validationStatus:data.validation,
-  properties:data.properties||[],
-  parameters:{
-   resolution,
-   samplingSize:3,
-   morphSpeed:speed,
-   fluidity
+  $("speedValue").textContent =
+    morphSpeed() + "/10";
+
+  $("fluidValue").textContent =
+    fluidityValue() + "/10";
+
+  $("detailValue").textContent =
+    resolutionValue();
+}
+
+["speed", "fluid", "detail"].forEach(id => {
+
+  $(id).addEventListener(
+    "input",
+    updateSliderLabels
+  );
+
+});
+
+updateSliderLabels();
+
+
+// =====================================================
+// MATHEMATICAL IDENTITY RECORDS
+// =====================================================
+
+function createRecord(name, expression, classification) {
+
+  recordCounter++;
+
+  const now = new Date();
+
+  return {
+
+    id:
+      "CG-MATH-" +
+      now.getTime() +
+      "-" +
+      recordCounter,
+
+    version: "0.5.1",
+
+    name: name,
+
+    expression: expression,
+
+    classification: classification,
+
+    validation:
+      classification === "Custom mathematical model"
+        ? "Experimental / unverified model"
+        : "Established mathematical definition",
+
+    resolution: resolutionValue(),
+
+    samplingDomain: {
+      minimum: -1.5,
+      maximum: 1.5
+    },
+
+    reconstructionMethod:
+      "Marching tetrahedra",
+
+    createdAt: now.toISOString(),
+
+    properties: [],
+
+    notes: "",
+
+    sourceRecord: currentRecord
+      ? currentRecord.id
+      : null
+
+  };
+}
+
+
+// =====================================================
+// RESEARCH RECORD DISPLAY
+// =====================================================
+
+function displayRecord(record) {
+
+  if (!record) return;
+
+  $("recordId").textContent =
+    record.id;
+
+  $("classification").textContent =
+    record.classification;
+
+  $("validation").textContent =
+    record.validation;
+
+  $("recordGeometry").textContent =
+    record.name;
+
+  $("notes").value =
+    record.notes || "";
+
+  $("recordDetails").textContent =
+    JSON.stringify(
+      {
+        equation: record.expression,
+        properties: record.properties,
+        resolution: record.resolution,
+        samplingDomain: record.samplingDomain,
+        reconstructionMethod:
+          record.reconstructionMethod,
+        createdAt: record.createdAt,
+        sourceRecord: record.sourceRecord
+      },
+      null,
+      2
+    );
+
+}
+
+
+// =====================================================
+// DEVELOPMENT MONITOR
+// =====================================================
+
+function updateGeometryMonitor() {
+
+  if (!currentGeometry) return;
+
+  const positions =
+    currentGeometry.getAttribute("position");
+
+  if (!positions) return;
+
+  const vertices = positions.count;
+
+  $("vertices").textContent =
+    vertices.toLocaleString();
+
+  $("triangles").textContent =
+    Math.floor(vertices / 3).toLocaleString();
+
+  $("resolution").textContent =
+    resolutionValue();
+
+  $("shape").textContent =
+    currentRecord
+      ? currentRecord.name
+      : "Unknown";
+
+}
+
+
+// =====================================================
+// GEOMETRY REPLACEMENT
+// =====================================================
+
+function replaceGeometry(geometry) {
+
+  const oldGeometry = mesh.geometry;
+
+  mesh.geometry = geometry;
+
+  currentGeometry = geometry;
+
+  if (
+    oldGeometry &&
+    oldGeometry !== geometry
+  ) {
+    oldGeometry.dispose();
+  }
+
+  updateGeometryMonitor();
+}
+
+
+// =====================================================
+// SHAPE MEMORY
+// =====================================================
+
+function updateTimeline() {
+
+  const timeline = $("timeline");
+
+  timeline.min = 0;
+
+  timeline.max = Math.max(
+    0,
+    history.length - 1
+  );
+
+  timeline.value = Math.max(0, cursor);
+
+  const positionText =
+    history.length
+      ? (cursor + 1) + "/" + history.length
+      : "0/0";
+
+  $("timelinePosition").textContent =
+    positionText;
+
+  $("timelinePositionMonitor").textContent =
+    positionText;
+
+  $("previous").disabled =
+    cursor <= 0;
+
+  $("next").disabled =
+    cursor >= history.length - 1;
+
+}
+
+
+// =====================================================
+// SAVE A RECORD TO SHAPE MEMORY
+// =====================================================
+
+function commitRecord(record) {
+
+  if (cursor < history.length - 1) {
+
+    history = history.slice(
+      0,
+      cursor + 1
+    );
+
+  }
+
+  history.push(record);
+
+  cursor = history.length - 1;
+
+  currentRecord = record;
+
+  displayRecord(record);
+
+  updateTimeline();
+
+  updateGeometryMonitor();
+
+}
+
+
+// =====================================================
+// MORPH TRANSITION
+// =====================================================
+
+function startTransition(record, options = {}) {
+
+  try {
+
+    const targetField =
+      compile(record.expression);
+
+    const targetResolution =
+      record.resolution;
+
+    if (
+      !Number.isInteger(targetResolution) ||
+      targetResolution < 12 ||
+      targetResolution > 32
+    ) {
+      throw Error(
+        "Resolution must be between 12 and 32."
+      );
+    }
+
+    // Validate geometry before changing state.
+
+    const targetGeometry =
+      generateGeometry(
+        targetField,
+        targetResolution
+      );
+
+    const restoring =
+      options.restore === true;
+
+    const targetIndex =
+      options.index;
+
+    // Finish an interrupted transition safely.
+
+    transition = null;
+
+    if (
+      !currentField ||
+      fluidityValue() <= 1
+    ) {
+
+      replaceGeometry(targetGeometry);
+
+      currentField = targetField;
+
+      currentRecord = record;
+
+      if (restoring) {
+
+        cursor = targetIndex;
+
+        displayRecord(record);
+
+        updateTimeline();
+
+        updateGeometryMonitor();
+
+      } else {
+
+        commitRecord(record);
+
+      }
+
+      setStatus(
+        "Ready: " + record.name
+      );
+
+      return;
+    }
+
+    // Target geometry has been validated.
+    // The transition uses field interpolation.
+
+    targetGeometry.dispose();
+
+    const startField = currentField;
+
+    const duration =
+      4200 - morphSpeed() * 350;
+
+    transition = {
+
+      startField: startField,
+
+      targetField: targetField,
+
+      targetRecord: record,
+
+      resolution: targetResolution,
+
+      started: performance.now(),
+
+      duration: Math.max(
+        350,
+        duration
+      ),
+
+      restoring: restoring,
+
+      targetIndex: targetIndex,
+
+      lastUpdate: 0
+
+    };
+
+    setStatus(
+      "Morphing to " + record.name + "..."
+    );
+
+  } catch (error) {
+
+    setStatus(
+      "Generation error: " +
+      error.message
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// FINISH A MORPH TRANSITION
+// =====================================================
+
+function finishTransition() {
+
+  if (!transition) return;
+
+  const completed = transition;
+
+  transition = null;
+
+  try {
+
+    const geometry =
+      generateGeometry(
+        completed.targetField,
+        completed.resolution
+      );
+
+    replaceGeometry(geometry);
+
+    currentField =
+      completed.targetField;
+
+    currentRecord =
+      completed.targetRecord;
+
+    if (completed.restoring) {
+
+      cursor =
+        completed.targetIndex;
+
+      displayRecord(currentRecord);
+
+      updateTimeline();
+
+      updateGeometryMonitor();
+
+    } else {
+
+      commitRecord(currentRecord);
+
+    }
+
+    setStatus(
+      "Ready: " +
+      currentRecord.name
+    );
+
+  } catch (error) {
+
+    setStatus(
+      "Morph completion error: " +
+      error.message
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// UPDATE MORPH TRANSITION
+// =====================================================
+
+function updateTransition(now) {
+
+  if (!transition) return;
+
+  const t = Math.min(
+    1,
+    (now - transition.started) /
+    transition.duration
+  );
+
+  if (t >= 1) {
+
+    finishTransition();
+
+    return;
+  }
+
+  // Limit geometry rebuilding for mobile devices.
+
+  if (
+    now - transition.lastUpdate < 120
+  ) {
+    return;
+  }
+
+  transition.lastUpdate = now;
+
+  const smooth =
+    t * t * (3 - 2 * t);
+
+  const blend = smooth;
+
+  const fieldA =
+    transition.startField;
+
+  const fieldB =
+    transition.targetField;
+
+  const blendedField =
+    (x, y, z) => {
+
+      const a = fieldA(x, y, z);
+
+      const b = fieldB(x, y, z);
+
+      return (
+        a * (1 - blend) +
+        b * blend
+      );
+
+    };
+
+  try {
+
+    const geometry =
+      generateGeometry(
+        blendedField,
+        transition.resolution
+      );
+
+    replaceGeometry(geometry);
+
+  } catch (error) {
+
+    transition = null;
+
+    setStatus(
+      "Morph error: " +
+      error.message
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// GENERATE A LIBRARY SHAPE
+// =====================================================
+
+function generatePreset(key) {
+
+  const entry = CATALOG[key];
+
+  if (!entry) {
+
+    setStatus(
+      "Unknown mathematical model: " +
+      key
+    );
+
+    return;
+  }
+
+  const record = createRecord(
+    entry.name,
+    entry.expr,
+    entry.kind
+  );
+
+  record.properties =
+    [...entry.properties];
+
+  $("formulaSelect").value = key;
+
+  $("equation").value =
+    entry.expr;
+
+  $("formulaDescription").textContent =
+    entry.desc;
+
+  startTransition(record);
+
+}
+
+
+// =====================================================
+// GENERATE CUSTOM EQUATION
+// =====================================================
+
+function generateCustomEquation() {
+
+  const expression =
+    $("equation").value.trim();
+
+  if (!expression) {
+
+    setStatus(
+      "Enter an equation first."
+    );
+
+    return;
+  }
+
+  const record = createRecord(
+    "Custom Equation",
+    expression,
+    "Custom mathematical model"
+  );
+
+  startTransition(record);
+
+}
+
+
+// =====================================================
+// COMMAND SYSTEM
+// =====================================================
+
+function executeCommand() {
+
+  const command =
+    $("command")
+      .value
+      .trim()
+      .toLowerCase();
+
+  if (CATALOG[command]) {
+
+    generatePreset(command);
+
+    return;
+  }
+
+  if (command === "generate") {
+
+    generateCustomEquation();
+
+    return;
+  }
+
+  if (command === "reset") {
+
+    resetCamera();
+
+    return;
+  }
+
+  setStatus(
+    "Unknown command. Try sphere, torus, " +
+    "ellipsoid, union, subtract, gyroid, " +
+    "generate, or reset."
+  );
+
+}
+
+
+// =====================================================
+// SHAPE MEMORY NAVIGATION
+// =====================================================
+
+function restoreRecord(index) {
+
+  if (
+    index < 0 ||
+    index >= history.length
+  ) {
+    return;
+  }
+
+  const record = history[index];
+
+  $("detail").value =
+    record.resolution;
+
+  $("equation").value =
+    record.expression;
+
+  updateSliderLabels();
+
+  startTransition(
+    record,
+    {
+      restore: true,
+      index: index
+    }
+  );
+
+}
+
+
+// =====================================================
+// SAVE RESEARCH NOTES
+// =====================================================
+
+function saveResearchNotes() {
+
+  if (!currentRecord) {
+
+    setStatus(
+      "Generate a shape before saving notes."
+    );
+
+    return;
+  }
+
+  currentRecord.notes =
+    $("notes").value;
+
+  displayRecord(currentRecord);
+
+  setStatus(
+    "Research notes saved in Shape Memory."
+  );
+
+}
+
+
+// =====================================================
+// EXPORT RESEARCH RECORD
+// =====================================================
+
+function exportResearchRecord() {
+
+  if (!currentRecord) {
+
+    setStatus(
+      "No research record to export."
+    );
+
+    return;
+  }
+
+  currentRecord.notes =
+    $("notes").value;
+
+  const json = JSON.stringify(
+    currentRecord,
+    null,
+    2
+  );
+
+  const blob = new Blob(
+    [json],
+    {
+      type: "application/json"
+    }
+  );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const link =
+    document.createElement("a");
+
+  link.href = url;
+
+  link.download =
+    currentRecord.id + ".json";
+
+  document.body.append(link);
+
+  link.click();
+
+  link.remove();
+
+  setTimeout(
+    () => URL.revokeObjectURL(url),
+    1000
+  );
+
+  setStatus(
+    "Research record exported."
+  );
+
+}
+
+
+// =====================================================
+// IMPORT RESEARCH RECORD
+// =====================================================
+
+async function importResearchRecord(file) {
+
+  if (!file) return;
+
+  try {
+
+    if (file.size > 100000) {
+      throw Error(
+        "JSON file exceeds the 100 KB limit."
+      );
+    }
+
+    const text =
+      await file.text();
+
+    const record =
+      JSON.parse(text);
+
+    if (
+      !record ||
+      typeof record !== "object" ||
+      Array.isArray(record)
+    ) {
+      throw Error(
+        "Invalid research record."
+      );
+    }
+
+    if (
+      typeof record.expression !== "string" ||
+      typeof record.name !== "string" ||
+      typeof record.id !== "string"
+    ) {
+      throw Error(
+        "Missing required record fields."
+      );
+    }
+
+    if (
+      record.name.length > 120 ||
+      record.id.length > 160
+    ) {
+      throw Error(
+        "Record metadata is too long."
+      );
+    }
+
+    if (
+      !Number.isInteger(record.resolution) ||
+      record.resolution < 12 ||
+      record.resolution > 32
+    ) {
+      throw Error(
+        "Invalid record resolution."
+      );
+    }
+
+    // Compile imported mathematical expressions safely.
+
+    compile(record.expression);
+
+    const imported = {
+
+      id: record.id,
+
+      version: "0.5.1",
+
+      name: record.name,
+
+      expression: record.expression,
+
+      classification:
+        typeof record.classification === "string"
+          ? record.classification.slice(0, 120)
+          : "Imported mathematical model",
+
+      validation:
+        "Imported record — independent validation required",
+
+      resolution: record.resolution,
+
+      samplingDomain: {
+        minimum: -1.5,
+        maximum: 1.5
+      },
+
+      reconstructionMethod:
+        "Marching tetrahedra",
+
+      createdAt:
+        typeof record.createdAt === "string"
+          ? record.createdAt
+          : new Date().toISOString(),
+
+      properties:
+        Array.isArray(record.properties)
+          ? record.properties
+              .filter(x => typeof x === "string")
+              .slice(0, 20)
+              .map(x => x.slice(0, 120))
+          : [],
+
+      notes:
+        typeof record.notes === "string"
+          ? record.notes.slice(0, 20000)
+          : "",
+
+      sourceRecord:
+        typeof record.sourceRecord === "string"
+          ? record.sourceRecord.slice(0, 160)
+          : null
+
+    };
+
+    $("detail").value =
+      imported.resolution;
+
+    $("equation").value =
+      imported.expression;
+
+    updateSliderLabels();
+
+    startTransition(imported);
+
+  } catch (error) {
+
+    setStatus(
+      "Import error: " +
+      error.message
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// TOUCH ROTATION AND PINCH ZOOM
+// =====================================================
+
+const view = $("view");
+
+let dragging = false;
+
+let lastPointerX = 0;
+let lastPointerY = 0;
+
+const activePointers = new Map();
+
+let previousPinchDistance = null;
+
+function pointerDistance() {
+
+  const points =
+    [...activePointers.values()];
+
+  if (points.length < 2) {
+    return null;
+  }
+
+  return Math.hypot(
+    points[0].x - points[1].x,
+    points[0].y - points[1].y
+  );
+
+}
+
+view.addEventListener(
+  "pointerdown",
+  event => {
+
+    view.setPointerCapture(
+      event.pointerId
+    );
+
+    activePointers.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY
+      }
+    );
+
+    dragging = true;
+
+    lastPointerX =
+      event.clientX;
+
+    lastPointerY =
+      event.clientY;
+
+    previousPinchDistance =
+      pointerDistance();
+
+  }
+);
+
+view.addEventListener(
+  "pointermove",
+  event => {
+
+    if (
+      !activePointers.has(
+        event.pointerId
+      )
+    ) {
+      return;
+    }
+
+    const previous =
+      activePointers.get(
+        event.pointerId
+      );
+
+    activePointers.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY
+      }
+    );
+
+    if (activePointers.size >= 2) {
+
+      const distance =
+        pointerDistance();
+
+      if (
+        previousPinchDistance &&
+        distance
+      ) {
+
+        const change =
+          distance -
+          previousPinchDistance;
+
+        zoom = Math.max(
+          2,
+          Math.min(
+            12,
+            zoom - change * 0.015
+          )
+        );
+
+      }
+
+      previousPinchDistance =
+        distance;
+
+      return;
+    }
+
+    if (dragging) {
+
+      const dx =
+        event.clientX - previous.x;
+
+      const dy =
+        event.clientY - previous.y;
+
+      rotationY += dx * 0.008;
+
+      rotationX += dy * 0.008;
+
+      rotationX = Math.max(
+        -Math.PI / 2,
+        Math.min(
+          Math.PI / 2,
+          rotationX
+        )
+      );
+
+    }
+
+  }
+);
+
+function releasePointer(event) {
+
+  activePointers.delete(
+    event.pointerId
+  );
+
+  dragging =
+    activePointers.size > 0;
+
+  previousPinchDistance =
+    pointerDistance();
+
+}
+
+view.addEventListener(
+  "pointerup",
+  releasePointer
+);
+
+view.addEventListener(
+  "pointercancel",
+  releasePointer
+);
+
+view.addEventListener(
+  "wheel",
+  event => {
+
+    event.preventDefault();
+
+    zoom += event.deltaY * 0.005;
+
+    zoom = Math.max(
+      2,
+      Math.min(12, zoom)
+    );
+
   },
-  geometry:{
-   method:"Marching Tetrahedra",
-   fieldType:"Implicit Scalar Field"
-  },
-  transformation:{
-   previousRecordId:current?.recordId||null,
-   method:"Scalar Field Interpolation"
-  },
-  researchNotes:""
- };
+  {
+    passive: false
+  }
+);
+
+
+// =====================================================
+// CAMERA CONTROLS
+// =====================================================
+
+function resetCamera() {
+
+  rotationX = 0.25;
+
+  rotationY = 0;
+
+  zoom = 5;
+
+  setStatus(
+    "Camera view reset."
+  );
+
 }
 
-function compileRecord(record){
- return compileExpression(record.expression);
+function toggleRotation() {
+
+  autoRotation = !autoRotation;
+
+  $("rotationToggle").textContent =
+    "Auto Rotation: " +
+    (autoRotation ? "ON" : "OFF");
+
 }
 
-function updateRecord(){
 
- if(!current)return;
+// =====================================================
+// CONNECT USER INTERFACE
+// =====================================================
 
- $("recordId").textContent=current.recordId;
- $("classification").textContent=current.classification;
- $("validation").textContent=current.validationStatus;
- $("recordGeometry").textContent=current.name;
+document.querySelectorAll(
+  "[data-shape]"
+).forEach(button => {
 
- $("notes").value=current.researchNotes||"";
+  button.addEventListener(
+    "click",
+    () => {
 
- $("recordDetails").textContent=
-  JSON.stringify(current,null,2);
+      generatePreset(
+        button.dataset.shape
+      );
+
+    }
+  );
+
+});
+
+$("generateEquation").addEventListener(
+  "click",
+  generateCustomEquation
+);
+
+$("runCommand").addEventListener(
+  "click",
+  executeCommand
+);
+
+$("command").addEventListener(
+  "keydown",
+  event => {
+
+    if (event.key === "Enter") {
+      executeCommand();
+    }
+
+  }
+);
+
+$("rotationToggle").addEventListener(
+  "click",
+  toggleRotation
+);
+
+$("resetView").addEventListener(
+  "click",
+  resetCamera
+);
+
+$("previous").addEventListener(
+  "click",
+  () => restoreRecord(cursor - 1)
+);
+
+$("next").addEventListener(
+  "click",
+  () => restoreRecord(cursor + 1)
+);
+
+$("timeline").addEventListener(
+  "change",
+  event => {
+
+    restoreRecord(
+      Number(event.target.value)
+    );
+
+  }
+);
+
+$("saveNotes").addEventListener(
+  "click",
+  saveResearchNotes
+);
+
+$("exportRecord").addEventListener(
+  "click",
+  exportResearchRecord
+);
+
+$("importRecord").addEventListener(
+  "click",
+  () => $("importFile").click()
+);
+
+$("importFile").addEventListener(
+  "change",
+  event => {
+
+    importResearchRecord(
+      event.target.files[0]
+    );
+
+    event.target.value = "";
+
+  }
+);
+
+
+// =====================================================
+// ANIMATION LOOP
+// =====================================================
+
+function animate(now) {
+
+  requestAnimationFrame(animate);
+
+  const delta = Math.min(
+    0.05,
+    (now - lastFrame) / 1000
+  );
+
+  lastFrame = now;
+
+  updateTransition(now);
+
+  if (autoRotation) {
+
+    rotationY += delta * 0.25;
+
+  }
+
+  mesh.rotation.x = rotationX;
+
+  mesh.rotation.y = rotationY;
+
+  camera.position.z = zoom;
+
+  camera.lookAt(0, 0, 0);
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+  fpsFrames++;
+
+  if (now - fpsTime >= 1000) {
+
+    const elapsed =
+      (now - fpsTime) / 1000;
+
+    const fps =
+      Math.round(
+        fpsFrames / elapsed
+      );
+
+    $("fps").textContent =
+      fps;
+
+    fpsFrames = 0;
+
+    fpsTime = now;
+
+  }
+
 }
 
-function updateTimeline(){
 
- const list=$("timeline");
- list.replaceChildren();
+// =====================================================
+// INITIALIZE CIPHERGRID MORPHSTUDIO
+// =====================================================
 
- history.forEach((record,index)=>{
+updateTimeline();
 
-  const li=document.createElement("li");
-  const button=document.createElement("button");
+generatePreset("sphere");
 
-  button.textContent=
-   (index+1)+". "+record.name;
+requestAnimationFrame(animate);
 
-  if(index===cursor)
-   button.classList.add("active");
 
-  button.onclick=()=>restore(index);
+// =====================================================
+// END APPLICATION
+// =====================================================
 
-  li.appendChild(button);
-  list.appendChild(li);
- });
+} catch (error) {
 
- $("previous").disabled=cursor<=0;
- $("next").disabled=cursor>=history.length-1;
+  setStatus(
+    "Initialization error: " +
+    error.message
+  );
 
- $("timelinePosition").textContent=
-  history.length
-   ?(cursor+1)+"/"+history.length
-   :"
+  console.error(error);
+
+}
+
+</script>
+</body>
+</html>
