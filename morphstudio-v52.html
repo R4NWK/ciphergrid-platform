@@ -449,7 +449,23 @@ setStatus("Mathematical engine ready. Initializing 3D renderer...");
 // THREE.JS 3D RENDERING ENGINE
 
 const scene = new THREE.Scene();
+// CipherGrid v0.5.2 — Coordinate Reference System
+const axesHelper = new THREE.AxesHelper(4);
+scene.add(axesHelper);
 
+// Mathematical origin marker (0, 0, 0)
+const originGeometry = new THREE.SphereGeometry(0.055, 16, 12);
+const originMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffffff
+});
+
+const originMarker = new THREE.Mesh(
+  originGeometry,
+  originMaterial
+);
+
+originMarker.position.set(0, 0, 0);
+scene.add(originMarker);
 const camera = new THREE.PerspectiveCamera(
   45,
   1,
