@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CipherGrid CG-001</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:#080d19;
+  color:#e7efff;
+  font-family:Arial,sans-serif;
+}
+
+header{
+  padding:18px;
+  background:#101b30;
+  border-bottom:1px solid #304763;
+}
+
+h1{
+  font-size:22px;
+  margin:0 0 6px;
+}
+
+.subtitle{
+  color:#8db9e8;
+  font-size:13px;
+}
+
+main{
+  padding:14px;
+  max-width:1100px;
+  margin:auto;
+}
+
+.panel{
+  background:#111e33;
+  border:1px solid #304763;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:14px;
+}
+
+h2{
+  font-size:17px;
+  margin:0 0 14px;
+}
+
+.buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+button{
+  background:#173e63;
+  border:1px solid #4a80aa;
+  border-radius:8px;
+  color:white;
+  padding:11px 15px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:active{
+  background:#286998;
+}
+
+.canvasWrap{
+  width:100%;
+  background:#081320;
+  border:1px solid #34516d;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+canvas{
+  display:block;
+  width:100%;
+  height:auto;
+}
+
+.control{
+  margin-bottom:15px;
+}
+
+.control label{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:7px;
+  font-size:14px;
+}
+
+input[type=range]{
+  width:100%;
+  accent-color:#62c4ff;
+}
+
+pre{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  line-height:1.7;
+  color:#b9e3ff;
+  font-size:13px;
+}
+
+.status{
+  color:#75e5b1;
+  font-size:13px;
+}
+
+.note{
+  font-size:12px;
+  color:#a6b8d0;
+  line-height:1.6;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>CipherGrid CG-001</h1>
+  <div class="subtitle">
+    Adaptive Mathematical Geometry Laboratory
+  </div>
+</header>
+
+<main>
+
+<section class="panel">
+  <h2>Transformation Controls</h2>
+
+  <div class="buttons">
+    <button id="originalBtn">ORIGINAL</button>
+    <button id="flipBtn">FLIP NUMBERS</button>
+    <button id="resetBtn">RESET</button>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Mathematical Geometry</h2>
+
+  <div class="canvasWrap">
+    <canvas id="geometry" width="700" height="700"></canvas>
+  </div>
+
+  <p class="note">
+    Experimental six-arm radial geometry.
+    Origin is located at the center.
+  </p>
+</section>
+
+<section class="panel">
+  <h2>Live Mathematical Parameters</h2>
+
+  <div id="controls"></div>
+</section>
+
+<section class="panel">
+  <h2>Formula Monitor</h2>
+  <pre id="formula"></pre>
+</section>
+
+<section class="panel">
+  <h2>Mathematical Relationship Monitor</h2>
+  <pre id="relationships"></pre>
+</section>
+
+<section class="panel">
+  <h2>Research Status</h2>
+  <div class="status" id="status">
+    Initializing mathematical engine...
+  </div>
+</section>
+
+</main>
+
+<script>
+
+const canvas=document.getElementById("geometry");
+const ctx=canvas.getContext("2d");
+
+const original={
+  a:0.50,
+  b:0.18,
+  c:0.12,
+  r0:0.22,
+  q:0.90
+};
+
+let p={...original};
+
+const specs=[
+  ["a","Starting Distance",0,2,0.01],
+  ["b","Circle Spacing",0,1,0.01],
+  ["c","Angular Change",0,2,0.01],
+  ["r0","Starting Radius",0.01,1,0.01],
+  ["q","Size Multiplier",0.01,1.5,0.01]
+];
+
+const controls=document.getElementById("controls");
+
+for(const [key,name,min,max,step] of specs){
+
+  const div=document.createElement("div");
+  div.className="control";
+
+  div.innerHTML=`
+    <label>
+      <span>${name} (${key})</span>
+      <strong id="value-${key}"></strong>
+    </label>
+    <input
+      type="range"
+      id="slider-${key}"
+      min="${min}"
+      max="${max}"
+      step="${step}"
+    >
+  `;
+
+  controls.appendChild(div);
+
+  div.querySelector("input").addEventListener("input",e=>{
+    p[key]=Number(e.target.value);
+    update("Manual parameter adjustment");
+  });
+}
+
+function syncControls(){
+
+  for(const [key] of specs){
+
+    document.getElementById("slider-"+key).value=p[key];
+
+    document.getElementById("value-"+key)
+      .textContent=p[key].toFixed(2);
+  }
+}
+
+function draw(){
+
+  const w=canvas.width;
+  const h=canvas.height;
+
+  ctx.clearRect(0,0,w,h);
+
+  ctx.fillStyle="#081320";
+  ctx.fillRect(0,0,w,h);
+
+  const cx=w/2;
+  const cy=h/2;
+
+  // Determine a scale that keeps the geometry visible.
+  const steps=12;
+  const maxDistance=Math.abs(p.a)+Math.abs(p.b)*(steps-1)+p.r0*Math.pow(Math.max(p.q,1),steps-1);
+  const scale=(w*0.43)/Math.max(maxDistance,0.5);
+
+  // Coordinate grid
+  ctx.strokeStyle="#1b344a";
+  ctx.lineWidth=1;
+
+  for(let i=-10;i<=10;i++){
+
+    const x=cx+i*35;
+    const y=cy+i*35;
+
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,h);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(w,y);
+    ctx.stroke();
+  }
+
+  // X and Y axes
+  ctx.strokeStyle="#507d9d";
+  ctx.lineWidth=2;
+
+  ctx.beginPath();
+  ctx.moveTo(0,cy);
+  ctx.lineTo(w,cy);
+  ctx.moveTo(cx,0);
+  ctx.lineTo(cx,h);
+  ctx.stroke();
+
+  // Six rotated arms
+  for(let arm=0;arm<6;arm++){
+
+    const armRotation=arm*Math.PI/3;
+
+    for(let i=0;i<steps;i++){
+
+      const distance=p.a+p.b*i;
+      const theta=armRotation+p.c*i;
+
+      const x=distance*Math.cos(theta);
+      const y=distance*Math.sin(theta);
+
+      const radius=p.r0*Math.pow(p.q,i);
+
+      const px=cx+x*scale;
+      const py=cy-y*scale;
+      const pr=radius*scale;
+
+      ctx.beginPath();
+      ctx.arc(px,py,Math.max(pr,0.01),0,Math.PI*2);
+
+      ctx.strokeStyle=`hsla(${190+arm*20},95%,70%,0.9)`;
+      ctx.lineWidth=2;
+      ctx.stroke();
+    }
+  }
+
+  // Origin marker
+  ctx.beginPath();
+  ctx.arc(cx,cy,5,0,Math.PI*2);
+  ctx.fillStyle="#ffffff";
+  ctx.fill();
+
+  ctx.fillStyle="#d8eaff";
+  ctx.font="15px Arial";
+
+  ctx.fillText("0,0",cx+10,cy-10);
+  ctx.fillText("+X",w-35,cy-12);
+  ctx.fillText("+Y",cx+12,22);
+}
+
+function update(reason){
+
+  syncControls();
+  draw();
+
+  document.getElementById("formula").textContent=
+`Circle-center distance:
+d(i) = ${p.a.toFixed(2)} + ${p.b.toFixed(2)}i
+
+Angular position:
+θ(i,k) = k(2π/6) + ${p.c.toFixed(2)}i
+
+X coordinate:
+x(i,k) = d(i) cos(θ(i,k))
+
+Y coordinate:
+y(i,k) = d(i) sin(θ(i,k))
+
+Circle radius:
+r(i) = ${p.r0.toFixed(2)} × (${p.q.toFixed(2)})^i
+
+Arm index: k = 0...5
+Circle index: i = 0...11`;
+
+  document.getElementById("relationships").textContent=
+`Angular change per circle:
+${(p.c*180/Math.PI).toFixed(3)} degrees
+
+Radial distance increase:
+${p.b.toFixed(3)} units per step
+
+Circle-size change:
+${((p.q-1)*100).toFixed(2)}% per step
+
+Rotational symmetry:
+6 arms, separated by 60 degrees
+
+Total generated circles:
+72`;
+
+  document.getElementById("status").textContent=
+    reason+" — geometry recalculated.";
+}
+
+document.getElementById("originalBtn").onclick=()=>{
+  p={...original};
+  update("Original parameters restored");
+};
+
+document.getElementById("flipBtn").onclick=()=>{
+
+  const next={...p};
+
+  next.a=p.b;
+  next.b=p.a;
+
+  next.c=p.q;
+  next.q=p.c;
+
+  p=next;
+
+  update("Mathematical parameters flipped");
+};
+
+document.getElementById("resetBtn").onclick=()=>{
+  p={...original};
+  update("Experiment reset");
+};
+
+update("Mathematical engine initialized");
+
+</script>
+
+</body>
+</html>
