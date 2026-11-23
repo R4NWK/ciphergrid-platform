@@ -138,7 +138,8 @@ pre{
 
   <div class="buttons">
     <button id="originalBtn">ORIGINAL</button>
-    <button id="flipBtn">FLIP NUMBERS</button>
+    <button id="flip">FLIP NUMBERS</button>
+<button id="visibilityToggle">Enhanced Visibility: OFF</button>
     <button id="resetBtn">RESET</button>
   </div>
 </section>
@@ -196,6 +197,14 @@ const original={
 
 let p={...original};
 let enhancedVisibility=false;
+document.getElementById("visibilityToggle").addEventListener("click",function(){
+  enhancedVisibility=!enhancedVisibility;
+
+  this.textContent="Enhanced Visibility: "+
+    (enhancedVisibility?"ON":"OFF");
+
+  draw();
+});
 const specs=[
   ["a","Starting Distance",0,2,0.01],
   ["b","Circle Spacing",0,1,0.01],
