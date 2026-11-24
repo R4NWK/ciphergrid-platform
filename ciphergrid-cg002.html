@@ -325,10 +325,6 @@ const pr=enhancedVisibility
   ? Math.max(trueRadius,3)
   : trueRadius;
 
-const pr=enhancedVisibility
-  ? Math.max(trueRadius,3)
-  : trueRadius;
-
       ctx.beginPath();
       ctx.arc(px,py,Math.max(pr,0.01),0,Math.PI*2);
 
@@ -401,7 +397,7 @@ document.getElementById("originalBtn").onclick=()=>{
   update("Original parameters restored");
 };
 
-document.getElementById("flipBtn").onclick=()=>{
+document.getElementById("flip").onclick=()>{
 
   const next={...p};
 
@@ -424,6 +420,5 @@ document.getElementById("resetBtn").onclick=()=>{
 update("Mathematical engine initialized");
 
 </script>
-
 </body>
 </html>
