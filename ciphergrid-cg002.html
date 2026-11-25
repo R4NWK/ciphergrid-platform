@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CipherGrid CG-001</title>
+<title>CipherGrid CG-002</title>
 
 <style>
 *{box-sizing:border-box}
@@ -125,7 +125,7 @@ pre{
 <body>
 
 <header>
-  <h1>CipherGrid CG-001</h1>
+  <h1>CipherGrid CG-002</h1>
   <div class="subtitle">
     Adaptive Mathematical Geometry Laboratory
   </div>
@@ -181,6 +181,19 @@ pre{
 </section>
 
 </main>
+
+<script>
+window.addEventListener("error",function(event){
+  document.getElementById("status").textContent=
+    "Engine error: "+event.message+
+    " | Line: "+event.lineno;
+});
+</script>
+
+<script>
+
+const canvas=document.getElementById("geometry");
+const ctx=canvas.getContext("2d");
 
 <script>
 
@@ -418,7 +431,6 @@ document.getElementById("resetBtn").onclick=()=>{
 };
 
 update("Mathematical engine initialized");
-
 </script>
 </body>
 </html>
